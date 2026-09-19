@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Costeo · Los Pares 84×88</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥩</text></svg>">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --naranja:#E85D24;
+    --naranja-osc:#c94a17;
+    --negro:#1c1c1c;
+    --gris:#6b6b6b;
+    --gris-cl:#ececec;
+    --bg:#f4f4f5;
+    --verde:#1f9d55;
+    --amber:#d68a00;
+    --rojo:#d63a2f;
+    --card:#ffffff;
+    --sombra:0 1px 3px rgba(0,0,0,.12);
+    --radio:12px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--negro);font-size:15px;-webkit-tap-highlight-color:transparent}
+  header{background:var(--negro);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20}
+  header .logo{font-weight:800;font-size:19px;letter-spacing:.3px}
+  header .logo span{color:var(--naranja)}
+  header .estado{margin-left:auto;font-size:12px;color:#bbb;display:flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:50%;background:#888}
+  .dot.ok{background:var(--verde)} .dot.err{background:var(--rojo)}
+  nav{background:#fff;display:flex;overflow-x:auto;border-bottom:1px solid var(--gris-cl);position:sticky;top:52px;z-index:19}
+  nav button{flex:0 0 auto;background:none;border:none;padding:13px 16px;font-size:14px;font-weight:600;color:var(--gris);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+  nav button.activo{color:var(--naranja);border-bottom-color:var(--naranja)}
+  main{padding:16px;max-width:1100px;margin:0 auto}
+  .tab{display:none} .tab.activo{display:block}
+  h2{font-size:18px;margin-bottom:4px}
+  .sub{color:var(--gris);font-size:13px;margin-bottom:14px}
+  .barra{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+  input,select,button{font-family:inherit;font-size:14px}
+  input[type=text],input[type=number],input[type=month],select{padding:9px 11px;border:1px solid #d5d5d5;border-radius:8px;background:#fff;width:100%}
+  .btn{background:var(--naranja);color:#fff;border:none;padding:9px 15px;border-radius:8px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .btn:hover{background:var(--naranja-osc)}
+  .btn.sec{background:#fff;color:var(--negro);border:1px solid #d5d5d5}
+  .btn.sec:hover{background:#f0f0f0}
+  .btn.mini{padding:5px 10px;font-size:13px}
+  .btn.peligro{background:#fff;color:var(--rojo);border:1px solid #f0c4c0}
+  .buscar{flex:1;min-width:180px}
+  .resumen{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+  .kpi{background:var(--card);border-radius:var(--radio);padding:13px 15px;box-shadow:var(--sombra)}
+  .kpi .n{font-size:22px;font-weight:800}
+  .kpi .l{font-size:12px;color:var(--gris);margin-top:2px}
+  .cat-tit{font-weight:800;margin:18px 0 8px;color:var(--negro);font-size:15px;display:flex;align-items:center;gap:8px}
+  .cat-tit::before{content:"";width:4px;height:16px;background:var(--naranja);border-radius:2px}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--radio);overflow:hidden;box-shadow:var(--sombra)}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #f0f0f0;font-size:14px}
+  th{background:#fafafa;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--gris)}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr:last-child td{border-bottom:none}
+  tr.click{cursor:pointer} tr.click:hover{background:#fff7f3}
+  .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
+  .b-verde{background:#e3f5ea;color:var(--verde)}
+  .b-amber{background:#fbf0d9;color:var(--amber)}
+  .b-rojo{background:#fbe4e2;color:var(--rojo)}
+  .b-gris{background:#eee;color:var(--gris)}
+  .b-estrella{background:#fff3d6;color:#b8860b}
+  .b-caballo{background:#e0eefc;color:#2a6bb5}
+  .b-rompe{background:#efe3fb;color:#7a3ec2}
+  .b-perro{background:#f0e6df;color:#8a6d58}
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+  .modal-bg.abierto{display:flex}
+  .modal{background:#fff;border-radius:16px;max-width:640px;width:100%;padding:20px;margin:auto}
+  .modal h3{font-size:17px;margin-bottom:2px}
+  .modal .close{float:right;background:none;border:none;font-size:24px;cursor:pointer;color:var(--gris);line-height:1}
+  .campo{margin-bottom:12px}
+  .campo label{display:block;font-size:12px;font-weight:600;color:var(--gris);margin-bottom:4px}
+  .fila{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .fila-3{display:grid;grid-template-columns:2fr 1fr auto;gap:8px;align-items:end}
+  .lista-ingr{border:1px solid var(--gris-cl);border-radius:10px;margin:10px 0;max-height:230px;overflow-y:auto}
+  .lista-ingr .li{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #f2f2f2;font-size:14px}
+  .lista-ingr .li:last-child{border-bottom:none}
+  .lista-ingr .li .costo{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--gris)}
+  .lista-ingr .li button{background:none;border:none;color:var(--rojo);cursor:pointer;font-size:16px}
+  .lista-ingr .vacio{padding:14px;text-align:center;color:var(--gris);font-size:13px}
+  .costeo-box{background:#faf7f5;border:1px solid #f0e5de;border-radius:12px;padding:14px;margin-top:12px}
+  .costeo-box .r{display:flex;justify-content:space-between;padding:4px 0;font-size:14px}
+  .costeo-box .r.big{font-size:16px;font-weight:800;border-top:1px dashed #e0d0c5;margin-top:6px;padding-top:8px}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--negro);color:#fff;padding:11px 18px;border-radius:10px;font-size:14px;z-index:80;opacity:0;transition:opacity .2s;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+  .toast.ver{opacity:1}
+  .toast.err{background:var(--rojo)}
+  .vacio-msg{text-align:center;color:var(--gris);padding:40px 20px}
+  .me-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:#ddd;border-radius:12px;overflow:hidden;margin-bottom:16px}
+  .me-cel{background:#fff;padding:12px;min-height:90px}
+  .me-cel h4{font-size:13px;margin-bottom:6px}
+  .me-cel .cnt{font-size:26px;font-weight:800}
+  @media(max-width:560px){
+    .fila{grid-template-columns:1fr}
+    main{padding:12px}
+    th,td{padding:8px 8px;font-size:13px}
+    .me-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Costeo · Los <span>Pares</span> 84×88</div>
+  <div class="estado"><span class="dot" id="dot"></span><span id="estadoTxt">Conectando…</span></div>
+</header>
+
+<nav id="nav">
+  <button data-tab="costeo" class="activo">Costeo</button>
+  <button data-tab="insumos">Insumos</button>
+  <button data-tab="subrecetas">Subrecetas</button>
+  <button data-tab="empaques">Empaques</button>
+  <button data-tab="menu">Menu Engineering</button>
+  <button data-tab="ventas">Ventas</button>
+  <button data-tab="historial">Historial</button>
+</nav>
+
+<main>
+  <!-- COSTEO -->
+  <section class="tab activo" id="tab-costeo">
+    <h2>Costeo de platillos</h2>
+    <div class="sub">Clic en un platillo para armar su receta y ver el costo real.</div>
+    <div class="resumen" id="kpis"></div>
+    <div class="barra">
+      <input type="text" class="buscar" id="buscarPlatillo" placeholder="Buscar platillo…">
+      <select id="filtroCat" style="width:auto"></select>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--gris)"><input type="checkbox" id="soloReceta" style="width:auto"> Solo con receta</label>
+    </div>
+    <div id="listaCosteo"></div>
+  </section>
+
+  <!-- INSUMOS -->
+  <section class="tab" id="tab-insumos">
+    <h2>Insumos</h2>
+    <div class="sub">Materia prima. Captura la presentación en unidad base (g, ml o pza) y la merma que se pierde al limpiar/porcionar.</div>
+    <div class="barra">
+      <input type="text" class="buscar" id="buscarInsumo" placeholder="Buscar insumo…">
+      <button class="btn" onclick="abrirInsumo()">+ Nuevo insumo</button>
+    </div>
+    <div id="listaInsumos"></div>
+  </section>
+
+  <!-- SUBRECETAS -->
+  <section class="tab" id="tab-subrecetas">
+    <h2>Subrecetas</h2>
+    <div class="sub">Salsas, guarniciones y marinados que se usan en varios platillos. Se costean una vez.</div>
+    <div class="barra">
+      <button class="btn" onclick="abrirSub()">+ Nueva subreceta</button>
+    </div>
+    <div id="listaSubs"></div>
+  </section>
+
+  <!-- EMPAQUES -->
+  <section class="tab" id="tab-empaques">
+    <h2>Empaques</h2>
+    <div class="sub">Bolsas al vacío, charolas, etiquetas… para cortes para llevar (boutique).</div>
+    <div class="barra">
+      <button class="btn" onclick="abrirEmpaque()">+ Nuevo empaque</button>
+    </div>
+    <div id="listaEmpaques"></div>
+  </section>
+
+  <!-- MENU ENGINEERING -->
+  <section class="tab" id="tab-menu">
+    <h2>Menu Engineering</h2>
+    <div class="sub">Cruza margen × popularidad por categoría. Necesita ventas cargadas (pestaña Ventas).</div>
+    <div class="barra">
+      <select id="meCat" style="width:auto"></select>
+      <select id="mePeriodo" style="width:auto"></select>
+    </div>
+    <div class="me-grid" id="meGrid"></div>
+    <div id="meTabla"></div>
+  </section>
+
+  <!-- VENTAS -->
+  <section class="tab" id="tab-ventas">
+    <h2>Ventas por periodo</h2>
+    <div class="sub">Captura cuántas unidades se vendió de cada platillo en el mes. Es la popularidad del menu engineering.</div>
+    <div class="barra">
+      <label style="font-size:13px;color:var(--gris)">Periodo:</label>
+      <input type="month" id="ventasPeriodo" style="width:auto">
+      <select id="ventasCat" style="width:auto"></select>
+      <button class="btn" onclick="guardarVentas()">Guardar ventas del periodo</button>
+    </div>
+    <div id="listaVentas"></div>
+  </section>
+
+  <!-- HISTORIAL -->
+  <section class="tab" id="tab-historial">
+    <h2>Historial de costos</h2>
+    <div class="sub">Cada vez que guardas un snapshot en Costeo, queda registrado aquí para ver cómo evoluciona.</div>
+    <div class="barra">
+      <select id="histPlatillo" style="width:auto;min-width:220px"></select>
+    </div>
+    <div id="listaHistorial"></div>
+  </section>
+</main>
+
+<!-- MODAL RECETA -->
+<div class="modal-bg" id="modalReceta">
+  <div class="modal">
+    <button class="close" onclick="cerrar('modalReceta')">×</button>
+    <h3 id="recetaTitulo">Receta</h3>
+    <div class="sub" id="recetaCat"></div>
+    <div class="fila">
+      <div class="campo"><label>Precio actual ($)</label><input type="number" id="recPrecio" step="0.01"></div>
+      <div class="campo"><label>Food cost objetivo (%)</label><input type="number" id="recObjetivo" step="0.5"></div>
+    </div>
+
+    <div class="campo"><label>Agregar ingrediente / subreceta</label>
+      <div class="fila-3">
+        <select id="recSelIngr"></select>
+        <input type="number" id="recCant" placeholder="Cantidad" step="0.01">
+        <button class="btn mini" onclick="agregarLinea()">Agregar</button>
+      </div>
+    </div>
+    <div class="lista-ingr" id="recLineas"></div>
+
+    <div class="campo"><label>Agregar empaque (opcional)</label>
+      <div class="fila-3">
+        <select id="recSelEmp"></select>
+        <input type="number" id="recCantEmp" placeholder="Cant." step="0.01" value="1">
+        <button class="btn mini" onclick="agregarEmpaque()">Agregar</button>
+      </div>
+    </div>
+    <div class="lista-ingr" id="recEmpaques"></div>
+
+    <div class="costeo-box" id="recCosteo"></div>
+
+    <div class="barra" style="margin-top:14px">
+      <button class="btn" onclick="guardarReceta()">Guardar receta</button>
+      <button class="btn sec" onclick="guardarSnapshot()">Guardar snapshot al historial</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL INSUMO -->
+<div class="modal-bg" id="modalInsumo">
+  <div class="modal" style="max-width:520px">
+    <button class="close" onclick="cerrar('modalInsumo')">×</button>
+    <h3 id="insTitulo">Nuevo insumo</h3>
+    <div class="sub">Presentación en unidad base. Ej: 1 kg de arrachera → 1000 g.</div>
+    <div class="campo"><label>Nombre</label><input type="text" id="insNombre"></div>
+    <div class="fila">
+      <div class="campo"><label>Categoría (carne, lácteo…)</label><input type="text" id="insCat"></div>
+      <div class="campo"><label>Proveedor</label><input type="text" id="insProv"></div>
+    </div>
+    <div class="fila">
+      <div class="campo"><label>Cantidad de la presentación</label><input type="number" id="insCant" step="0.001" placeholder="1000"></div>
+      <div class="campo"><label>Unidad base</label>
+        <select id="insUnidad"><option value="g">g</option><option value="ml">ml</option><option value="pza">pza</option></select>
+      </div>
+    </div>
+    <div class="fila">
+      <div class="campo"><label>Precio de compra ($)</label><input type="number" id="insPrecio" step="0.01"></div>
+      <div class="campo"><label>Merma (%)</label><input type="number" id="insMerma" step="0.5" value="0"></div>
+    </div>
+    <div class="costeo-box" id="insPreview" style="margin-bottom:12px"></div>
+    <div class="barra">
+      <button class="btn" onclick="guardarInsumo()">Guardar</button>
+      <button class="btn peligro" id="insBorrar" onclick="borrarInsumo()" style="display:none">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SUBRECETA -->
+<div class="modal-bg" id="modalSub">
+  <div class="modal">
+    <button class="close" onclick="cerrar('modalSub')">×</button>
+    <h3 id="subTitulo">Nueva subreceta</h3>
+    <div class="campo"><label>Nombre</label><input type="text" id="subNombre"></div>
+    <div class="fila">
+      <div class="campo"><label>Rendimiento (cuánto produce)</label><input type="number" id="subRend" step="0.001" placeholder="1000"></div>
+      <div class="campo"><label>Unidad</label>
+        <select id="subUnidad"><option value="ml">ml</option><option value="g">g</option><option value="pza">pza</option></select>
+      </div>
+    </div>
+    <div class="campo"><label>Agregar insumo</label>
+      <div class="fila-3">
+        <select id="subSelIngr"></select>
+        <input type="number" id="subCant" placeholder="Cantidad" step="0.01">
+        <button class="btn mini" onclick="agregarLineaSub()">Agregar</button>
+      </div>
+    </div>
+    <div class="lista-ingr" id="subLineas"></div>
+    <div class="costeo-box" id="subCosteo"></div>
+    <div class="barra" style="margin-top:14px">
+      <button class="btn" onclick="guardarSub()">Guardar subreceta</button>
+      <button class="btn peligro" id="subBorrar" onclick="borrarSub()" style="display:none">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EMPAQUE -->
+<div class="modal-bg" id="modalEmpaque">
+  <div class="modal" style="max-width:440px">
+    <button class="close" onclick="cerrar('modalEmpaque')">×</button>
+    <h3 id="empTitulo">Nuevo empaque</h3>
+    <div class="campo"><label>Nombre</label><input type="text" id="empNombre"></div>
+    <div class="campo"><label>Costo unitario ($)</label><input type="number" id="empCosto" step="0.01"></div>
+    <div class="barra">
+      <button class="btn" onclick="guardarEmpaque()">Guardar</button>
+      <button class="btn peligro" id="empBorrar" onclick="borrarEmpaque()" style="display:none">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==========================================================
+//  CONFIG — tu proyecto Supabase
+// ==========================================================
+const SUPABASE_URL = "https://qawbropbejyclpfcweey.supabase.co";
+const SUPABASE_KEY = "sb_publishable_LOxFRAre7P8qcWkGXf9LBw_UfBUZzok";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ==========================================================
+//  ESTADO
+// ==========================================================
+const state = {
+  categorias:[], insumos:[], subrecetas:[], subrecetaIngr:[],
+  empaques:[], platillos:[], platilloIngr:[], platilloEmp:[], ventas:[]
+};
+let editId = null;         // id en edición (insumo/sub/empaque)
+let recetaActual = null;   // platillo abierto
+let recLineas = [];        // {tipo:'insumo'|'subreceta', ref_id, cantidad}
+let recEmpaques = [];      // {empaque_id, cantidad}
+let subLineas = [];        // {insumo_id, cantidad}
+
+const $ = id => document.getElementById(id);
+const fmt = n => "$" + (Number(n)||0).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct = n => (Number(n)||0).toFixed(1) + "%";
+
+function toast(msg, err=false){
+  const t=$("toast"); t.textContent=msg; t.className="toast ver"+(err?" err":"");
+  setTimeout(()=>t.className="toast",2600);
+}
+
+// ==========================================================
+//  MAPAS Y CÁLCULO
+// ==========================================================
+const insumoById = id => state.insumos.find(x=>x.id===id);
+const subById    = id => state.subrecetas.find(x=>x.id===id);
+const empById    = id => state.empaques.find(x=>x.id===id);
+const catById    = id => state.categorias.find(x=>x.id===id);
+
+function costoUnidadUtilInsumo(ins){
+  if(!ins) return 0;
+  const util = ins.presentacion_cantidad * (1 - (ins.merma_pct||0)/100);
+  return util>0 ? ins.precio_compra/util : 0;
+}
+function costoSubrecetaUnidad(sub){
+  if(!sub) return 0;
+  let total=0;
+  for(const r of state.subrecetaIngr.filter(x=>x.subreceta_id===sub.id)){
+    total += r.cantidad * costoUnidadUtilInsumo(insumoById(r.insumo_id));
+  }
+  const rend = sub.rendimiento_cantidad||1;
+  return rend>0 ? total/rend : 0;
+}
+function costoPlatillo(p){
+  let total=0;
+  for(const r of state.platilloIngr.filter(x=>x.platillo_id===p.id)){
+    if(r.insumo_id) total += r.cantidad * costoUnidadUtilInsumo(insumoById(r.insumo_id));
+    else if(r.subreceta_id) total += r.cantidad * costoSubrecetaUnidad(subById(r.subreceta_id));
+  }
+  for(const e of state.platilloEmp.filter(x=>x.platillo_id===p.id)){
+    const emp=empById(e.empaque_id); if(emp) total += e.cantidad*emp.costo_unitario;
+  }
+  return total;
+}
+function tieneReceta(p){
+  return state.platilloIngr.some(x=>x.platillo_id===p.id) || state.platilloEmp.some(x=>x.platillo_id===p.id);
+}
+function metricas(p){
+  const costo = costoPlatillo(p);
+  const precio = p.precio_actual||0;
+  const margen = precio - costo;
+  const fc = precio>0 ? costo/precio*100 : 0;
+  const obj = p.food_cost_objetivo||33;
+  const sugerido = obj>0 ? costo/(obj/100) : 0;
+  return {costo, precio, margen, fc, obj, sugerido};
+}
+function claseFC(fc, obj){
+  if(fc===0) return "b-gris";
+  if(fc<=obj) return "b-verde";
+  if(fc<=obj+8) return "b-amber";
+  return "b-rojo";
+}
+
+// ==========================================================
+//  CARGA INICIAL
+// ==========================================================
+async function cargarTodo(){
+  try{
+    const [cat,ins,sub,subI,emp,pla,plaI,plaE,ven] = await Promise.all([
+      sb.from("categorias").select("*").order("orden"),
+      sb.from("insumos").select("*").order("nombre"),
+      sb.from("subrecetas").select("*").order("nombre"),
+      sb.from("subreceta_ingredientes").select("*"),
+      sb.from("empaques").select("*").order("nombre"),
+      sb.from("platillos").select("*").order("id"),
+      sb.from("platillo_ingredientes").select("*"),
+      sb.from("platillo_empaques").select("*"),
+      sb.from("platillo_ventas").select("*")
+    ]);
+    const err = [cat,ins,sub,subI,emp,pla,plaI,plaE,ven].find(r=>r.error);
+    if(err){ throw err.error; }
+    state.categorias=cat.data; state.insumos=ins.data; state.subrecetas=sub.data;
+    state.subrecetaIngr=subI.data; state.empaques=emp.data; state.platillos=pla.data;
+    state.platilloIngr=plaI.data; state.platilloEmp=plaE.data; state.ventas=ven.data;
+    $("dot").className="dot ok"; $("estadoTxt").textContent="Conectado";
+    poblarSelects();
+    renderTodo();
+  }catch(e){
+    $("dot").className="dot err"; $("estadoTxt").textContent="Error de conexión";
+    toast("Error: "+(e.message||e.hint||"no se pudo leer la base"), true);
+    console.error(e);
+  }
+}
+
+function poblarSelects(){
+  // filtro categorías en costeo
+  const cats = state.categorias;
+  const optCat = c=>`<option value="${c.id}">${c.nombre}</option>`;
+  $("filtroCat").innerHTML = `<option value="">Todas las categorías</option>` + cats.map(optCat).join("");
+  $("meCat").innerHTML = `<option value="">Todas</option>` + cats.map(optCat).join("");
+  $("ventasCat").innerHTML = `<option value="">Todas las categorías</option>` + cats.map(optCat).join("");
+  // periodos de ventas
+  const periodos = [...new Set(state.ventas.map(v=>v.periodo))].sort().reverse();
+  $("mePeriodo").innerHTML = `<option value="">Ventas acumuladas</option>` + periodos.map(p=>`<option value="${p}">${p}</option>`).join("");
+  // historial platillo
+  $("histPlatillo").innerHTML = `<option value="">Elige un platillo…</option>` +
+    state.platillos.map(p=>`<option value="${p.id}">${nombreCompleto(p)}</option>`).join("");
+  // ingredientes para modales
+  const grpIns = `<optgroup label="Insumos">`+state.insumos.map(i=>`<option value="ins-${i.id}">${i.nombre} (${i.unidad_base})</option>`).join("")+`</optgroup>`;
+  const grpSub = `<optgroup label="Subrecetas">`+state.subrecetas.map(s=>`<option value="sub-${s.id}">${s.nombre} (${s.unidad})</option>`).join("")+`</optgroup>`;
+  $("recSelIngr").innerHTML = grpIns+grpSub;
+  $("subSelIngr").innerHTML = state.insumos.map(i=>`<option value="${i.id}">${i.nombre} (${i.unidad_base})</option>`).join("");
+  $("recSelEmp").innerHTML = state.empaques.length? state.empaques.map(e=>`<option value="${e.id}">${e.nombre} (${fmt(e.costo_unitario)})</option>`).join("") : `<option value="">— sin empaques —</option>`;
+}
+
+function nombreCompleto(p){
+  return p.variante ? `${p.nombre} · ${p.variante}` : p.nombre;
+}
+
+function renderTodo(){
+  renderCosteo(); renderInsumos(); renderSubs(); renderEmpaques();
+  renderMenu(); renderVentas(); renderHistorial();
+}
+
+// ==========================================================
+//  TAB COSTEO
+// ==========================================================
+function renderCosteo(){
+  const q = ($("buscarPlatillo").value||"").toLowerCase();
+  const fCat = $("filtroCat").value;
+  const solo = $("soloReceta").checked;
+
+  // KPIs
+  const conReceta = state.platillos.filter(tieneReceta);
+  const fcs = conReceta.map(p=>metricas(p).fc).filter(x=>x>0);
+  const fcProm = fcs.length? fcs.reduce((a,b)=>a+b,0)/fcs.length : 0;
+  $("kpis").innerHTML = `
+    <div class="kpi"><div class="n">${state.platillos.length}</div><div class="l">Platillos</div></div>
+    <div class="kpi"><div class="n">${conReceta.length}</div><div class="l">Con receta</div></div>
+    <div class="kpi"><div class="n">${state.platillos.length-conReceta.length}</div><div class="l">Sin costear</div></div>
+    <div class="kpi"><div class="n">${fcProm?pct(fcProm):"—"}</div><div class="l">Food cost prom.</div></div>
+    <div class="kpi"><div class="n">${state.insumos.length}</div><div class="l">Insumos</div></div>`;
+
+  let lista = state.platillos.filter(p=>{
+    if(fCat && p.categoria_id!=fCat) return false;
+    if(solo && !tieneReceta(p)) return false;
+    if(q && !nombreCompleto(p).toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  const cont = $("listaCosteo");
+  if(!lista.length){ cont.innerHTML=`<div class="vacio-msg">Sin platillos que coincidan.</div>`; return; }
+
+  // agrupar por categoría (respetando orden)
+  const cats = state.categorias.filter(c=>lista.some(p=>p.categoria_id===c.id));
+  cont.innerHTML = cats.map(c=>{
+    const rows = lista.filter(p=>p.categoria_id===c.id).map(p=>{
+      const m=metricas(p);
+      const badge = m.costo>0
+        ? `<span class="badge ${claseFC(m.fc,m.obj)}">${pct(m.fc)}</span>`
+        : `<span class="badge b-gris">sin receta</span>`;
+      return `<tr class="click" onclick="abrirReceta(${p.id})">
+        <td>${nombreCompleto(p)}</td>
+        <td class="num">${fmt(m.precio)}</td>
+        <td class="num">${m.costo>0?fmt(m.costo):"—"}</td>
+        <td class="num">${m.costo>0?fmt(m.margen):"—"}</td>
+        <td class="num">${badge}</td>
+        <td class="num">${m.costo>0?fmt(m.sugerido):"—"}</td>
+      </tr>`;
+    }).join("");
+    return `<div class="cat-tit">${c.nombre}</div>
+      <table><thead><tr>
+        <th>Platillo</th><th class="num">Precio</th><th class="num">Costo</th>
+        <th class="num">Margen</th><th class="num">Food cost</th><th class="num">P. sugerido</th>
+      </tr></thead><tbody>${rows}</tbody></table>`;
+  }).join("");
+}
+["buscarPlatillo","filtroCat","soloReceta"].forEach(id=>{
+  document.addEventListener("input",e=>{ if(e.target.id===id) renderCosteo(); });
+});
+
+// ==========================================================
+//  MODAL RECETA
+// ==========================================================
+function abrirReceta(id){
+  const p = state.platillos.find(x=>x.id===id); if(!p) return;
+  recetaActual = p;
+  recLineas = state.platilloIngr.filter(x=>x.platillo_id===id).map(r=>
+    r.insumo_id ? {tipo:"insumo",ref_id:r.insumo_id,cantidad:r.cantidad}
+                : {tipo:"subreceta",ref_id:r.subreceta_id,cantidad:r.cantidad});
+  recEmpaques = state.platilloEmp.filter(x=>x.platillo_id===id).map(e=>({empaque_id:e.empaque_id,cantidad:e.cantidad}));
+  $("recetaTitulo").textContent = nombreCompleto(p);
+  $("recetaCat").textContent = (catById(p.categoria_id)||{}).nombre||"";
+  $("recPrecio").value = p.precio_actual;
+  $("recObjetivo").value = p.food_cost_objetivo;
+  renderLineasReceta();
+  abrir("modalReceta");
+}
+function renderLineasReceta(){
+  const cont=$("recLineas");
+  if(!recLineas.length){ cont.innerHTML=`<div class="vacio">Sin ingredientes aún.</div>`; }
+  else cont.innerHTML = recLineas.map((l,i)=>{
+    let nom, unidad, costoU;
+    if(l.tipo==="insumo"){ const ins=insumoById(l.ref_id); nom=ins?ins.nombre:"?"; unidad=ins?ins.unidad_base:""; costoU=costoUnidadUtilInsumo(ins);}
+    else { const s=subById(l.ref_id); nom=s?s.nombre:"?"; unidad=s?s.unidad:""; costoU=costoSubrecetaUnidad(s);}
+    return `<div class="li"><span>${nom}</span><span style="color:var(--gris)">${l.cantidad} ${unidad}</span>
+      <span class="costo">${fmt(l.cantidad*costoU)}</span>
+      <button onclick="quitarLinea(${i})">×</button></div>`;
+  }).join("");
+  const empCont=$("recEmpaques");
+  if(!recEmpaques.length){ empCont.innerHTML=`<div class="vacio">Sin empaques.</div>`; }
+  else empCont.innerHTML = recEmpaques.map((e,i)=>{
+    const emp=empById(e.empaque_id);
+    return `<div class="li"><span>${emp?emp.nombre:"?"}</span><span style="color:var(--gris)">×${e.cantidad}</span>
+      <span class="costo">${fmt(e.cantidad*(emp?emp.costo_unitario:0))}</span>
+      <button onclick="quitarEmpaque(${i})">×</button></div>`;
+  }).join("");
+  renderCosteoBox();
+}
+function renderCosteoBox(){
+  let costo=0;
+  for(const l of recLineas){
+    costo += l.cantidad * (l.tipo==="insumo"?costoUnidadUtilInsumo(insumoById(l.ref_id)):costoSubrecetaUnidad(subById(l.ref_id)));
+  }
+  for(const e of recEmpaques){ const emp=empById(e.empaque_id); if(emp) costo+=e.cantidad*emp.costo_unitario; }
+  const precio = parseFloat($("recPrecio").value)||0;
+  const obj = parseFloat($("recObjetivo").value)||33;
+  const margen = precio-costo;
+  const fc = precio>0?costo/precio*100:0;
+  const sugerido = obj>0?costo/(obj/100):0;
+  $("recCosteo").innerHTML = `
+    <div class="r"><span>Costo total</span><b>${fmt(costo)}</b></div>
+    <div class="r"><span>Precio actual</span><span>${fmt(precio)}</span></div>
+    <div class="r"><span>Food cost</span><span class="badge ${claseFC(fc,obj)}">${pct(fc)}</span></div>
+    <div class="r"><span>Precio sugerido (a ${obj}%)</span><span>${fmt(sugerido)}</span></div>
+    <div class="r big"><span>Margen de contribución</span><span>${fmt(margen)}</span></div>`;
+}
+$("recPrecio").addEventListener("input",renderCosteoBox);
+$("recObjetivo").addEventListener("input",renderCosteoBox);
+
+function agregarLinea(){
+  const val=$("recSelIngr").value; const cant=parseFloat($("recCant").value);
+  if(!val||!cant||cant<=0){ toast("Pon una cantidad válida",true); return; }
+  const [tipo,id]=val.split("-");
+  recLineas.push({tipo:tipo==="ins"?"insumo":"subreceta",ref_id:parseInt(id),cantidad:cant});
+  $("recCant").value=""; renderLineasReceta();
+}
+function quitarLinea(i){ recLineas.splice(i,1); renderLineasReceta(); }
+function agregarEmpaque(){
+  const id=parseInt($("recSelEmp").value); const cant=parseFloat($("recCantEmp").value);
+  if(!id||!cant||cant<=0){ toast("Cantidad inválida",true); return; }
+  recEmpaques.push({empaque_id:id,cantidad:cant}); renderLineasReceta();
+}
+function quitarEmpaque(i){ recEmpaques.splice(i,1); renderLineasReceta(); }
+
+async function guardarReceta(){
+  if(!recetaActual) return;
+  const id=recetaActual.id;
+  const precio=parseFloat($("recPrecio").value)||0;
+  const obj=parseFloat($("recObjetivo").value)||33;
+  try{
+    await sb.from("platillos").update({precio_actual:precio,food_cost_objetivo:obj}).eq("id",id);
+    await sb.from("platillo_ingredientes").delete().eq("platillo_id",id);
+    await sb.from("platillo_empaques").delete().eq("platillo_id",id);
+    if(recLineas.length){
+      const rows=recLineas.map(l=>({platillo_id:id,
+        insumo_id:l.tipo==="insumo"?l.ref_id:null,
+        subreceta_id:l.tipo==="subreceta"?l.ref_id:null,
+        cantidad:l.cantidad}));
+      const {error}=await sb.from("platillo_ingredientes").insert(rows); if(error) throw error;
+    }
+    if(recEmpaques.length){
+      const rows=recEmpaques.map(e=>({platillo_id:id,empaque_id:e.empaque_id,cantidad:e.cantidad}));
+      const {error}=await sb.from("platillo_empaques").insert(rows); if(error) throw error;
+    }
+    toast("Receta guardada");
+    cerrar("modalReceta");
+    await cargarTodo();
+  }catch(e){ toast("Error al guardar: "+(e.message||e.hint),true); console.error(e); }
+}
+
+async function guardarSnapshot(){
+  if(!recetaActual) return;
+  const p=recetaActual; const m=metricas({...p,precio_actual:parseFloat($("recPrecio").value)||0,food_cost_objetivo:parseFloat($("recObjetivo").value)||33});
+  // recomputar costo con las líneas actuales (aún no guardadas)
+  let costo=0;
+  for(const l of recLineas){ costo+=l.cantidad*(l.tipo==="insumo"?costoUnidadUtilInsumo(insumoById(l.ref_id)):costoSubrecetaUnidad(subById(l.ref_id))); }
+  for(const e of recEmpaques){ const emp=empById(e.empaque_id); if(emp) costo+=e.cantidad*emp.costo_unitario; }
+  const precio=parseFloat($("recPrecio").value)||0;
+  try{
+    const {error}=await sb.from("historial_costos").insert({
+      platillo_id:p.id, costo_total:costo, precio:precio,
+      margen_contribucion:precio-costo, food_cost_pct: precio>0?costo/precio*100:0
+    });
+    if(error) throw error;
+    toast("Snapshot guardado al historial");
+    await cargarTodo();
+  }catch(e){ toast("Error snapshot: "+(e.message||e.hint),true); }
+}
+
+// ==========================================================
+//  TAB INSUMOS
+// ==========================================================
+function renderInsumos(){
+  const q=($("buscarInsumo").value||"").toLowerCase();
+  const lista=state.insumos.filter(i=>i.nombre.toLowerCase().includes(q));
+  const cont=$("listaInsumos");
+  if(!state.insumos.length){ cont.innerHTML=`<div class="vacio-msg">Aún no hay insumos. Crea el primero.</div>`; return; }
+  cont.innerHTML=`<table><thead><tr>
+    <th>Insumo</th><th>Presentación</th><th class="num">Precio</th><th class="num">Merma</th><th class="num">Costo/unidad útil</th>
+  </tr></thead><tbody>${lista.map(i=>`
+    <tr class="click" onclick="abrirInsumo(${i.id})">
+      <td>${i.nombre}${i.categoria_insumo?` <span class="badge b-gris">${i.categoria_insumo}</span>`:""}</td>
+      <td>${i.presentacion_cantidad} ${i.unidad_base}</td>
+      <td class="num">${fmt(i.precio_compra)}</td>
+      <td class="num">${i.merma_pct?pct(i.merma_pct):"—"}</td>
+      <td class="num">${fmt(costoUnidadUtilInsumo(i))} /${i.unidad_base}</td>
+    </tr>`).join("")}</tbody></table>`;
+}
+document.addEventListener("input",e=>{ if(e.target.id==="buscarInsumo") renderInsumos(); });
+
+function abrirInsumo(id=null){
+  editId=id;
+  if(id){
+    const i=insumoById(id); $("insTitulo").textContent="Editar insumo";
+    $("insNombre").value=i.nombre; $("insCat").value=i.categoria_insumo||""; $("insProv").value=i.proveedor||"";
+    $("insCant").value=i.presentacion_cantidad; $("insUnidad").value=i.unidad_base;
+    $("insPrecio").value=i.precio_compra; $("insMerma").value=i.merma_pct||0;
+    $("insBorrar").style.display="inline-block";
+  }else{
+    $("insTitulo").textContent="Nuevo insumo";
+    ["insNombre","insCat","insProv","insCant","insPrecio"].forEach(x=>$(x).value="");
+    $("insUnidad").value="g"; $("insMerma").value=0; $("insBorrar").style.display="none";
+  }
+  previewInsumo(); abrir("modalInsumo");
+}
+function previewInsumo(){
+  const cant=parseFloat($("insCant").value)||0, precio=parseFloat($("insPrecio").value)||0, merma=parseFloat($("insMerma").value)||0;
+  const util=cant*(1-merma/100);
+  const costo=util>0?precio/util:0;
+  $("insPreview").innerHTML=`<div class="r"><span>Rendimiento útil</span><span>${util.toFixed(2)} ${$("insUnidad").value}</span></div>
+    <div class="r big"><span>Costo por ${$("insUnidad").value} útil</span><span>${fmt(costo)}</span></div>`;
+}
+["insCant","insPrecio","insMerma","insUnidad"].forEach(id=>$(id).addEventListener("input",previewInsumo));
+
+async function guardarInsumo(){
+  const datos={
+    nombre:$("insNombre").value.trim(),
+    categoria_insumo:$("insCat").value.trim()||null,
+    proveedor:$("insProv").value.trim()||null,
+    presentacion_cantidad:parseFloat($("insCant").value)||0,
+    unidad_base:$("insUnidad").value,
+    precio_compra:parseFloat($("insPrecio").value)||0,
+    merma_pct:parseFloat($("insMerma").value)||0
+  };
+  if(!datos.nombre||!datos.presentacion_cantidad||!datos.precio_compra){ toast("Falta nombre, cantidad o precio",true); return; }
+  try{
+    if(editId){ const {error}=await sb.from("insumos").update(datos).eq("id",editId); if(error) throw error; }
+    else { const {error}=await sb.from("insumos").insert(datos); if(error) throw error; }
+    toast("Insumo guardado"); cerrar("modalInsumo"); await cargarTodo();
+  }catch(e){ toast("Error: "+(e.message||e.hint),true); }
+}
+async function borrarInsumo(){
+  if(!editId||!confirm("¿Eliminar este insumo? Se quitará de las recetas que lo usen.")) return;
+  try{ const {error}=await sb.from("insumos").delete().eq("id",editId); if(error) throw error;
+    toast("Insumo eliminado"); cerrar("modalInsumo"); await cargarTodo();
+  }catch(e){ toast("Error: "+(e.message||e.hint),true); }
+}
+
+// ==========================================================
+//  TAB SUBRECETAS
+// ==========================================================
+function renderSubs(){
+  const cont=$("listaSubs");
+  if(!state.subrecetas.length){ cont.innerHTML=`<div class="vacio-msg">Sin subrecetas. Crea salsas o guarniciones reutilizables.</div>`; return; }
+  cont.innerHTML=`<table><thead><tr>
+    <th>Subreceta</th><th>Rendimiento</th><th class="num">Costo total</th><th class="num">Costo/unidad</th>
+  </tr></thead><tbody>${state.subrecetas.map(s=>{
+    let total=0; for(const r of state.subrecetaIngr.filter(x=>x.subreceta_id===s.id)) total+=r.cantidad*costoUnidadUtilInsumo(insumoById(r.insumo_id));
+    return `<tr class="click" onclick="abrirSub(${s.id})">
+      <td>${s.nombre}</td><td>${s.rendimiento_cantidad} ${s.unidad}</td>
+      <td class="num">${fmt(total)}</td><td class="num">${fmt(costoSubrecetaUnidad(s))} /${s.unidad}</td>
+    </tr>`; }).join("")}</tbody></table>`;
+}
+function abrirSub(id=null){
+  editId=id;
+  if(id){
+    const s=subById(id); $("subTitulo").textContent="Editar subreceta";
+    $("subNombre").value=s.nombre; $("subRend").value=s.rendimiento_cantidad; $("subUnidad").value=s.unidad;
+    subLineas=state.subrecetaIngr.filter(x=>x.subreceta_id===id).map(r=>({insumo_id:r.insumo_id,cantidad:r.cantidad}));
+    $("subBorrar").style.display="inline-block";
+  }else{
+    $("subTitulo").textContent="Nueva subreceta"; $("subNombre").value=""; $("subRend").value=""; $("subUnidad").value="ml";
+    subLineas=[]; $("subBorrar").style.display="none";
+  }
+  renderLineasSub(); abrir("modalSub");
+}
+function renderLineasSub(){
+  const cont=$("subLineas");
+  if(!subLineas.length){ cont.innerHTML=`<div class="vacio">Sin insumos aún.</div>`; }
+  else cont.innerHTML=subLineas.map((l,i)=>{
+    const ins=insumoById(l.insumo_id); const cu=costoUnidadUtilInsumo(ins);
+    return `<div class="li"><span>${ins?ins.nombre:"?"}</span><span style="color:var(--gris)">${l.cantidad} ${ins?ins.unidad_base:""}</span>
+      <span class="costo">${fmt(l.cantidad*cu)}</span><button onclick="quitarLineaSub(${i})">×</button></div>`;
+  }).join("");
+  let total=0; for(const l of subLineas) total+=l.cantidad*costoUnidadUtilInsumo(insumoById(l.insumo_id));
+  const rend=parseFloat($("subRend").value)||1;
+  $("subCosteo").innerHTML=`<div class="r"><span>Costo total del lote</span><b>${fmt(total)}</b></div>
+    <div class="r big"><span>Costo por ${$("subUnidad").value}</span><span>${fmt(rend>0?total/rend:0)}</span></div>`;
+}
+$("subRend").addEventListener("input",renderLineasSub);
+$("subUnidad").addEventListener("input",renderLineasSub);
+function agregarLineaSub(){
+  const id=parseInt($("subSelIngr").value); const cant=parseFloat($("subCant").value);
+  if(!id||!cant||cant<=0){ toast("Cantidad inválida",true); return; }
+  subLineas.push({insumo_id:id,cantidad:cant}); $("subCant").value=""; renderLineasSub();
+}
+function quitarLineaSub(i){ subLineas.splice(i,1); renderLineasSub(); }
+async function guardarSub(){
+  const datos={nombre:$("subNombre").value.trim(),rendimiento_cantidad:parseFloat($("subRend").value)||1,unidad:$("subUnidad").value};
+  if(!datos.nombre){ toast("Falta el nombre",true); return; }
+  try{
+    let sid=editId;
+    if(editId){ const {error}=await sb.from("subrecetas").update(datos).eq("id",editId); if(error) throw error; }
+    else { const {data,error}=await sb.from("subrecetas").insert(datos).select().single(); if(error) throw error; sid=data.id; }
+    await sb.from("subreceta_ingredientes").delete().eq("subreceta_id",sid);
+    if(subLineas.length){
+      const rows=subLineas.map(l=>({subreceta_id:sid,insumo_id:l.insumo_id,cantidad:l.cantidad}));
+      const {error}=await sb.from("subreceta_ingredientes").insert(rows); if(error) throw error;
+    }
+    toast("Subreceta guardada"); cerrar("modalSub"); await cargarTodo();
+  }catch(e){ toast("Error: "+(e.message||e.hint),true); }
+}
+async function borrarSub(){
+  if(!editId||!confirm("¿Eliminar esta subreceta?")) return;
+  try{ const {error}=await sb.from("subrecetas").delete().eq("id",editId); if(error) throw error;
+    toast("Subreceta eliminada"); cerrar("modalSub"); await cargarTodo();
+  }catch(e){ toast("Error: "+(e.message||e.hint),true); }
+}
+
+// ==========================================================
+//  TAB EMPAQUES
+// ==========================================================
+function renderEmpaques(){
+  const cont=$("listaEmpaques");
+  if(!state.empaques.length){ cont.innerHTML=`<div class="vacio-msg">Sin empaques.</div>`; return; }
+  cont.innerHTML=`<table><thead><tr><th>Empaque</th><th class="num">Costo unitario</th></tr></thead>
+    <tbody>${state.empaques.map(e=>`<tr class="click" onclick="abrirEmpaque(${e.id})">
+      <td>${e.nombre}</td><td class="num">${fmt(e.costo_unitario)}</td></tr>`).join("")}</tbody></table>`;
+}
+function abrirEmpaque(id=null){
+  editId=id;
+  if(id){ const e=empById(id); $("empTitulo").textContent="Editar empaque"; $("empNombre").value=e.nombre; $("empCosto").value=e.costo_unitario; $("empBorrar").style.display="inline-block"; }
+  else { $("empTitulo").textContent="Nuevo empaque"; $("empNombre").value=""; $("empCosto").value=""; $("empBorrar").style.display="none"; }
+  abrir("modalEmpaque");
+}
+async function guardarEmpaque(){
+  const datos={nombre:$("empNombre").value.trim(),costo_unitario:parseFloat($("empCosto").value)||0};
+  if(!datos.nombre){ toast("Falta el nombre",true); return; }
+  try{
+    if(editId){ const {error}=await sb.from("empaques").update(datos).eq("id",editId); if(error) throw error; }
+    else { const {error}=await sb.from("empaques").insert(datos); if(error) throw error; }
+    toast("Empaque guardado"); cerrar("modalEmpaque"); await cargarTodo();
+  }catch(e){ toast("Error: "+(e.message||e.hint),true); }
+}
+async function borrarEmpaque(){
+  if(!editId||!confirm("¿Eliminar este empaque?")) return;
+  try{ const {error}=await sb.from("empaques").delete().eq("id",editId); if(error) throw error;
+    toast("Empaque eliminado"); cerrar("modalEmpaque"); await cargarTodo();
+  }catch(e){ toast("Error: "+(e.message||e.hint),true); }
+}
+
+// ==========================================================
+//  TAB MENU ENGINEERING
+// ==========================================================
+function ventasPlatillo(id, periodo){
+  return state.ventas.filter(v=>v.platillo_id===id && (!periodo||v.periodo===periodo))
+                     .reduce((a,v)=>a+(v.unidades||0),0);
+}
+function renderMenu(){
+  const fCat=$("meCat").value; const periodo=$("mePeriodo").value;
+  // universo: platillos con receta (costo>0) de la(s) categoría(s)
+  let items=state.platillos.filter(p=>tieneReceta(p) && metricas(p).costo>0);
+  if(fCat) items=items.filter(p=>p.categoria_id==fCat);
+
+  const enriquecidos=items.map(p=>{ const m=metricas(p); return {p, margen:m.margen, unidades:ventasPlatillo(p.id,periodo)}; });
+
+  // umbrales por categoría
+  const porCat={};
+  enriquecidos.forEach(x=>{ (porCat[x.p.categoria_id]=porCat[x.p.categoria_id]||[]).push(x); });
+  const clasif={};
+  Object.values(porCat).forEach(arr=>{
+    const avgM=arr.reduce((a,x)=>a+x.margen,0)/arr.length;
+    const avgU=arr.reduce((a,x)=>a+x.unidades,0)/arr.length;
+    arr.forEach(x=>{
+      const altoM=x.margen>=avgM, altoU=x.unidades>=avgU;
+      clasif[x.p.id]= altoM&&altoU?"Estrella": !altoM&&altoU?"Caballo de batalla": altoM&&!altoU?"Rompecabezas":"Perro";
+    });
+  });
+
+  const cuenta={"Estrella":0,"Caballo de batalla":0,"Rompecabezas":0,"Perro":0};
+  enriquecidos.forEach(x=>cuenta[clasif[x.p.id]]++);
+  const cel=(t,c,desc)=>`<div class="me-cel"><h4>${t}</h4><div class="cnt">${cuenta[t]}</div><div class="sub" style="margin:0">${desc}</div></div>`;
+  $("meGrid").innerHTML =
+    cel("Estrella","","Protege y promueve")+
+    cel("Rompecabezas","","Buen margen, poca venta → dale visibilidad")+
+    cel("Caballo de batalla","","Se vende, margen bajo → sube precio o baja costo")+
+    cel("Perro","","Poco de ambos → revisa o quita");
+
+  if(!enriquecidos.length){ $("meTabla").innerHTML=`<div class="vacio-msg">Carga recetas y ventas para ver la clasificación.</div>`; return; }
+  const badgeCls={"Estrella":"b-estrella","Caballo de batalla":"b-caballo","Rompecabezas":"b-rompe","Perro":"b-perro"};
+  const orden={"Estrella":0,"Rompecabezas":1,"Caballo de batalla":2,"Perro":3};
+  enriquecidos.sort((a,b)=>orden[clasif[a.p.id]]-orden[clasif[b.p.id]] || b.margen-a.margen);
+  $("meTabla").innerHTML=`<table><thead><tr>
+    <th>Platillo</th><th>Categoría</th><th class="num">Margen</th><th class="num">Unidades</th><th>Clasificación</th>
+  </tr></thead><tbody>${enriquecidos.map(x=>`
+    <tr><td>${nombreCompleto(x.p)}</td><td>${(catById(x.p.categoria_id)||{}).nombre||""}</td>
+      <td class="num">${fmt(x.margen)}</td><td class="num">${x.unidades}</td>
+      <td><span class="badge ${badgeCls[clasif[x.p.id]]}">${clasif[x.p.id]}</span></td></tr>`).join("")}</tbody></table>`;
+}
+$("meCat").addEventListener("change",renderMenu);
+$("mePeriodo").addEventListener("change",renderMenu);
+
+// ==========================================================
+//  TAB VENTAS
+// ==========================================================
+function periodoActual(){ const d=new Date(); return d.toISOString().slice(0,7); }
+function renderVentas(){
+  if(!$("ventasPeriodo").value) $("ventasPeriodo").value=periodoActual();
+  const periodo=$("ventasPeriodo").value;
+  const fCat=$("ventasCat").value;
+  let lista=state.platillos.slice();
+  if(fCat) lista=lista.filter(p=>p.categoria_id==fCat);
+  const cats=state.categorias.filter(c=>lista.some(p=>p.categoria_id===c.id));
+  $("listaVentas").innerHTML=cats.map(c=>{
+    const rows=lista.filter(p=>p.categoria_id===c.id).map(p=>{
+      const v=state.ventas.find(x=>x.platillo_id===p.id&&x.periodo===periodo);
+      return `<tr><td>${nombreCompleto(p)}</td>
+        <td class="num" style="width:120px"><input type="number" min="0" data-pid="${p.id}" value="${v?v.unidades:""}" placeholder="0" style="text-align:right"></td></tr>`;
+    }).join("");
+    return `<div class="cat-tit">${c.nombre}</div><table><tbody>${rows}</tbody></table>`;
+  }).join("");
+}
+$("ventasPeriodo").addEventListener("change",renderVentas);
+$("ventasCat").addEventListener("change",renderVentas);
+async function guardarVentas(){
+  const periodo=$("ventasPeriodo").value;
+  if(!periodo){ toast("Elige un periodo",true); return; }
+  const inputs=[...document.querySelectorAll("#listaVentas input[data-pid]")];
+  const rows=inputs.map(i=>({platillo_id:parseInt(i.dataset.pid),periodo,unidades:parseInt(i.value)||0}))
+                   .filter(r=>r.unidades>0);
+  try{
+    // borrar sólo lo del periodo visible y reinsertar
+    const idsVisibles=inputs.map(i=>parseInt(i.dataset.pid));
+    await sb.from("platillo_ventas").delete().eq("periodo",periodo).in("platillo_id",idsVisibles);
+    if(rows.length){ const {error}=await sb.from("platillo_ventas").insert(rows); if(error) throw error; }
+    toast("Ventas guardadas"); await cargarTodo(); $("ventasPeriodo").value=periodo; renderVentas();
+  }catch(e){ toast("Error: "+(e.message||e.hint),true); }
+}
+
+// ==========================================================
+//  TAB HISTORIAL
+// ==========================================================
+async function renderHistorial(){
+  const pid=$("histPlatillo").value;
+  const cont=$("listaHistorial");
+  if(!pid){ cont.innerHTML=`<div class="vacio-msg">Elige un platillo para ver su historial.</div>`; return; }
+  try{
+    const {data,error}=await sb.from("historial_costos").select("*").eq("platillo_id",pid).order("fecha",{ascending:false});
+    if(error) throw error;
+    if(!data.length){ cont.innerHTML=`<div class="vacio-msg">Sin snapshots todavía. Guarda uno desde la receta.</div>`; return; }
+    cont.innerHTML=`<table><thead><tr>
+      <th>Fecha</th><th class="num">Costo</th><th class="num">Precio</th><th class="num">Margen</th><th class="num">Food cost</th>
+    </tr></thead><tbody>${data.map(h=>`<tr>
+      <td>${new Date(h.fecha).toLocaleString("es-MX",{dateStyle:"medium",timeStyle:"short"})}</td>
+      <td class="num">${fmt(h.costo_total)}</td><td class="num">${fmt(h.precio)}</td>
+      <td class="num">${fmt(h.margen_contribucion)}</td><td class="num">${pct(h.food_cost_pct)}</td></tr>`).join("")}</tbody></table>`;
+  }catch(e){ cont.innerHTML=`<div class="vacio-msg">Error: ${e.message||e.hint}</div>`; }
+}
+$("histPlatillo").addEventListener("change",renderHistorial);
+
+// ==========================================================
+//  NAV / MODALES
+// ==========================================================
+$("nav").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-tab]"); if(!b) return;
+  document.querySelectorAll("nav button").forEach(x=>x.classList.remove("activo"));
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("activo"));
+  b.classList.add("activo"); $("tab-"+b.dataset.tab).classList.add("activo");
+});
+function abrir(id){ $(id).classList.add("abierto"); }
+function cerrar(id){ $(id).classList.remove("abierto"); }
+document.querySelectorAll(".modal-bg").forEach(m=>m.addEventListener("click",e=>{ if(e.target===m) m.classList.remove("abierto"); }));
+
+// ARRANQUE
+cargarTodo();
+</script>
+</body>
+</html>
