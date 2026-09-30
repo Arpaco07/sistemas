@@ -313,8 +313,8 @@
 // ==========================================================
 //  CONFIG — tu proyecto Supabase
 // ==========================================================
-const SUPABASE_URL = "https://qawbropbejyclpfcweey.supabase.co";
-const SUPABASE_KEY = "sb_publishable_LOxFRAre7P8qcWkGXf9LBw_UfBUZzok";
+const SUPABASE_URL = "https://nkpzjnfazuqlbvctyqzg.supabase.co";
+const SUPABASE_KEY = "sb_publishable_GSAiqzwne2iMe1niBbSMkQ_6XUCGzjB";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ==========================================================
@@ -397,15 +397,15 @@ function claseFC(fc, obj){
 async function cargarTodo(){
   try{
     const [cat,ins,sub,subI,emp,pla,plaI,plaE,ven] = await Promise.all([
-      sb.from("categorias").select("*").order("orden"),
-      sb.from("insumos").select("*").order("nombre"),
-      sb.from("subrecetas").select("*").order("nombre"),
-      sb.from("subreceta_ingredientes").select("*"),
-      sb.from("empaques").select("*").order("nombre"),
-      sb.from("platillos").select("*").order("id"),
-      sb.from("platillo_ingredientes").select("*"),
-      sb.from("platillo_empaques").select("*"),
-      sb.from("platillo_ventas").select("*")
+      sb.from("costeo_categorias").select("*").order("orden"),
+      sb.from("costeo_insumos").select("*").order("nombre"),
+      sb.from("costeo_subrecetas").select("*").order("nombre"),
+      sb.from("costeo_subreceta_ingredientes").select("*"),
+      sb.from("costeo_empaques").select("*").order("nombre"),
+      sb.from("costeo_platillos").select("*").order("id"),
+      sb.from("costeo_platillo_ingredientes").select("*"),
+      sb.from("costeo_platillo_empaques").select("*"),
+      sb.from("costeo_platillo_ventas").select("*")
     ]);
     const err = [cat,ins,sub,subI,emp,pla,plaI,plaE,ven].find(r=>r.error);
     if(err){ throw err.error; }
@@ -589,19 +589,19 @@ async function guardarReceta(){
   const precio=parseFloat($("recPrecio").value)||0;
   const obj=parseFloat($("recObjetivo").value)||33;
   try{
-    await sb.from("platillos").update({precio_actual:precio,food_cost_objetivo:obj}).eq("id",id);
-    await sb.from("platillo_ingredientes").delete().eq("platillo_id",id);
-    await sb.from("platillo_empaques").delete().eq("platillo_id",id);
+    await sb.from("costeo_platillos").update({precio_actual:precio,food_cost_objetivo:obj}).eq("id",id);
+    await sb.from("costeo_platillo_ingredientes").delete().eq("platillo_id",id);
+    await sb.from("costeo_platillo_empaques").delete().eq("platillo_id",id);
     if(recLineas.length){
       const rows=recLineas.map(l=>({platillo_id:id,
         insumo_id:l.tipo==="insumo"?l.ref_id:null,
         subreceta_id:l.tipo==="subreceta"?l.ref_id:null,
         cantidad:l.cantidad}));
-      const {error}=await sb.from("platillo_ingredientes").insert(rows); if(error) throw error;
+      const {error}=await sb.from("costeo_platillo_ingredientes").insert(rows); if(error) throw error;
     }
     if(recEmpaques.length){
       const rows=recEmpaques.map(e=>({platillo_id:id,empaque_id:e.empaque_id,cantidad:e.cantidad}));
-      const {error}=await sb.from("platillo_empaques").insert(rows); if(error) throw error;
+      const {error}=await sb.from("costeo_platillo_empaques").insert(rows); if(error) throw error;
     }
     toast("Receta guardada");
     cerrar("modalReceta");
@@ -618,7 +618,7 @@ async function guardarSnapshot(){
   for(const e of recEmpaques){ const emp=empById(e.empaque_id); if(emp) costo+=e.cantidad*emp.costo_unitario; }
   const precio=parseFloat($("recPrecio").value)||0;
   try{
-    const {error}=await sb.from("historial_costos").insert({
+    const {error}=await sb.from("costeo_historial_costos").insert({
       platillo_id:p.id, costo_total:costo, precio:precio,
       margen_contribucion:precio-costo, food_cost_pct: precio>0?costo/precio*100:0
     });
@@ -685,14 +685,14 @@ async function guardarInsumo(){
   };
   if(!datos.nombre||!datos.presentacion_cantidad||!datos.precio_compra){ toast("Falta nombre, cantidad o precio",true); return; }
   try{
-    if(editId){ const {error}=await sb.from("insumos").update(datos).eq("id",editId); if(error) throw error; }
-    else { const {error}=await sb.from("insumos").insert(datos); if(error) throw error; }
+    if(editId){ const {error}=await sb.from("costeo_insumos").update(datos).eq("id",editId); if(error) throw error; }
+    else { const {error}=await sb.from("costeo_insumos").insert(datos); if(error) throw error; }
     toast("Insumo guardado"); cerrar("modalInsumo"); await cargarTodo();
   }catch(e){ toast("Error: "+(e.message||e.hint),true); }
 }
 async function borrarInsumo(){
   if(!editId||!confirm("¿Eliminar este insumo? Se quitará de las recetas que lo usen.")) return;
-  try{ const {error}=await sb.from("insumos").delete().eq("id",editId); if(error) throw error;
+  try{ const {error}=await sb.from("costeo_insumos").delete().eq("id",editId); if(error) throw error;
     toast("Insumo eliminado"); cerrar("modalInsumo"); await cargarTodo();
   }catch(e){ toast("Error: "+(e.message||e.hint),true); }
 }
@@ -751,19 +751,19 @@ async function guardarSub(){
   if(!datos.nombre){ toast("Falta el nombre",true); return; }
   try{
     let sid=editId;
-    if(editId){ const {error}=await sb.from("subrecetas").update(datos).eq("id",editId); if(error) throw error; }
-    else { const {data,error}=await sb.from("subrecetas").insert(datos).select().single(); if(error) throw error; sid=data.id; }
-    await sb.from("subreceta_ingredientes").delete().eq("subreceta_id",sid);
+    if(editId){ const {error}=await sb.from("costeo_subrecetas").update(datos).eq("id",editId); if(error) throw error; }
+    else { const {data,error}=await sb.from("costeo_subrecetas").insert(datos).select().single(); if(error) throw error; sid=data.id; }
+    await sb.from("costeo_subreceta_ingredientes").delete().eq("subreceta_id",sid);
     if(subLineas.length){
       const rows=subLineas.map(l=>({subreceta_id:sid,insumo_id:l.insumo_id,cantidad:l.cantidad}));
-      const {error}=await sb.from("subreceta_ingredientes").insert(rows); if(error) throw error;
+      const {error}=await sb.from("costeo_subreceta_ingredientes").insert(rows); if(error) throw error;
     }
     toast("Subreceta guardada"); cerrar("modalSub"); await cargarTodo();
   }catch(e){ toast("Error: "+(e.message||e.hint),true); }
 }
 async function borrarSub(){
   if(!editId||!confirm("¿Eliminar esta subreceta?")) return;
-  try{ const {error}=await sb.from("subrecetas").delete().eq("id",editId); if(error) throw error;
+  try{ const {error}=await sb.from("costeo_subrecetas").delete().eq("id",editId); if(error) throw error;
     toast("Subreceta eliminada"); cerrar("modalSub"); await cargarTodo();
   }catch(e){ toast("Error: "+(e.message||e.hint),true); }
 }
@@ -788,14 +788,14 @@ async function guardarEmpaque(){
   const datos={nombre:$("empNombre").value.trim(),costo_unitario:parseFloat($("empCosto").value)||0};
   if(!datos.nombre){ toast("Falta el nombre",true); return; }
   try{
-    if(editId){ const {error}=await sb.from("empaques").update(datos).eq("id",editId); if(error) throw error; }
-    else { const {error}=await sb.from("empaques").insert(datos); if(error) throw error; }
+    if(editId){ const {error}=await sb.from("costeo_empaques").update(datos).eq("id",editId); if(error) throw error; }
+    else { const {error}=await sb.from("costeo_empaques").insert(datos); if(error) throw error; }
     toast("Empaque guardado"); cerrar("modalEmpaque"); await cargarTodo();
   }catch(e){ toast("Error: "+(e.message||e.hint),true); }
 }
 async function borrarEmpaque(){
   if(!editId||!confirm("¿Eliminar este empaque?")) return;
-  try{ const {error}=await sb.from("empaques").delete().eq("id",editId); if(error) throw error;
+  try{ const {error}=await sb.from("costeo_empaques").delete().eq("id",editId); if(error) throw error;
     toast("Empaque eliminado"); cerrar("modalEmpaque"); await cargarTodo();
   }catch(e){ toast("Error: "+(e.message||e.hint),true); }
 }
@@ -882,8 +882,8 @@ async function guardarVentas(){
   try{
     // borrar sólo lo del periodo visible y reinsertar
     const idsVisibles=inputs.map(i=>parseInt(i.dataset.pid));
-    await sb.from("platillo_ventas").delete().eq("periodo",periodo).in("platillo_id",idsVisibles);
-    if(rows.length){ const {error}=await sb.from("platillo_ventas").insert(rows); if(error) throw error; }
+    await sb.from("costeo_platillo_ventas").delete().eq("periodo",periodo).in("platillo_id",idsVisibles);
+    if(rows.length){ const {error}=await sb.from("costeo_platillo_ventas").insert(rows); if(error) throw error; }
     toast("Ventas guardadas"); await cargarTodo(); $("ventasPeriodo").value=periodo; renderVentas();
   }catch(e){ toast("Error: "+(e.message||e.hint),true); }
 }
@@ -896,7 +896,7 @@ async function renderHistorial(){
   const cont=$("listaHistorial");
   if(!pid){ cont.innerHTML=`<div class="vacio-msg">Elige un platillo para ver su historial.</div>`; return; }
   try{
-    const {data,error}=await sb.from("historial_costos").select("*").eq("platillo_id",pid).order("fecha",{ascending:false});
+    const {data,error}=await sb.from("costeo_historial_costos").select("*").eq("platillo_id",pid).order("fecha",{ascending:false});
     if(error) throw error;
     if(!data.length){ cont.innerHTML=`<div class="vacio-msg">Sin snapshots todavía. Guarda uno desde la receta.</div>`; return; }
     cont.innerHTML=`<table><thead><tr>
