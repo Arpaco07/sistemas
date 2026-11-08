@@ -2,7 +2,7 @@
 // Cachea solo la pantalla de inicio (el "launcher").
 // Los sistemas viven en otras rutas y se abren siempre en vivo.
 
-const CACHE = 'pares-hub-v4';
+const CACHE = 'pares-hub-v5';
 const SHELL = [
   './',
   './index.html',
