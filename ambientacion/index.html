@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Los Pares · Ambientación</title>
+<meta name="theme-color" content="#000000" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Ambientación" />
+<link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+  :root{
+    --bg:#000; --panel:#0d0d0f; --panel-2:#131317; --line:#26262b; --line-soft:#1b1b20;
+    --ink:#f5f2ea; --muted:#9a978f; --muted-2:#6c6a64; --gold:#c2a35c; --gold-soft:rgba(194,163,92,.14);
+    --ok:#5fbf7a; --mal:#e06a5a;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{background:radial-gradient(120% 80% at 50% -10%,#17171a 0%,#0a0a0b 42%,#000 100%) fixed;color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;min-height:100dvh;
+    -webkit-font-smoothing:antialiased;
+    padding:calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 90px)}
+  .wrap{max-width:560px;margin:0 auto}
+  h2{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted-2);font-weight:600;margin:26px 4px 10px}
+  .panel{background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line-soft);border-radius:18px;padding:16px}
+  .fila{display:flex;gap:10px;align-items:center}
+  .fila > *{flex:1}
+  .muted{color:var(--muted);font-size:13px;line-height:1.45}
+  button,.btn{appearance:none;border:1px solid var(--line);background:#0b0b0d;color:var(--ink);border-radius:14px;
+    padding:13px 14px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+  button:active{transform:translateY(1px)}
+  button.oro{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}
+  button.lleno{background:var(--gold);color:#111;border-color:var(--gold)}
+  button.chico{padding:8px 11px;font-size:13px;border-radius:10px}
+  button.peligro{color:var(--mal)}
+  button[disabled]{opacity:.45}
+  input[type=text],input[type=url],select{width:100%;background:#000;color:var(--ink);border:1px solid var(--line);border-radius:12px;
+    padding:12px;font-size:16px;font-family:inherit}
+  input[type=range]{width:100%;accent-color:var(--gold)}
+  label.campo{display:block;margin:12px 0 0}
+  label.campo span{display:block;font-size:12px;color:var(--muted);margin:0 0 6px 2px}
+
+  /* Encabezado */
+  header{display:flex;align-items:center;gap:12px}
+  header img{width:44px;height:44px;border-radius:12px}
+  header .t{font-family:Georgia,serif;letter-spacing:.2em;text-transform:uppercase;font-size:14px}
+  header .s{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:3px}
+  .punto{width:8px;height:8px;border-radius:50%;background:var(--muted-2);display:inline-block}
+  .punto.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+
+  /* Ahora suena */
+  .ahora{display:flex;gap:12px;align-items:center;margin-top:16px}
+  .ahora img{width:96px;height:54px;border-radius:8px;object-fit:cover;background:#111;flex:0 0 auto}
+  .ahora .tit{font-weight:650;font-size:15px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .tag{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);border:1px solid var(--gold);border-radius:999px;padding:2px 8px;display:inline-block;margin-top:5px}
+  .mandos{display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:10px;margin-top:14px}
+  .mandos button{padding:16px 0;font-size:22px}
+  .mandos svg{width:24px;height:24px;fill:currentColor}
+  .vol{display:flex;align-items:center;gap:10px;margin-top:14px}
+  .vol svg{width:20px;height:20px;fill:var(--muted);flex:0 0 auto}
+
+  /* Pestañas abajo */
+  nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;background:rgba(10,10,12,.96);border-top:1px solid var(--line);
+    padding:8px 8px calc(env(safe-area-inset-bottom) + 8px);backdrop-filter:blur(10px)}
+  nav.tabs button{flex:1;border:0;background:none;flex-direction:column;gap:3px;font-size:11px;color:var(--muted);padding:6px 0;border-radius:10px}
+  nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  nav.tabs button.activa{color:var(--gold)}
+  .vista{display:none}
+  .vista.activa{display:block}
+
+  /* Listas */
+  .item{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line-soft);border-radius:14px;margin-top:8px;background:#0a0a0c}
+  .item .cuerpo{flex:1;min-width:0}
+  .item .nom{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .item.actual{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}
+  .switch{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 2px}
+  .switch input{width:46px;height:28px;appearance:none;background:#2a2a30;border-radius:99px;position:relative;cursor:pointer;flex:0 0 auto;transition:background .2s}
+  .switch input::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .2s}
+  .switch input:checked{background:var(--gold)}
+  .switch input:checked::after{left:21px}
+
+  /* Promos */
+  .rejilla{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
+  .promo{border:1px solid var(--line-soft);border-radius:14px;overflow:hidden;background:#0a0a0c}
+  .promo img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#111}
+  .promo.apagada img{opacity:.3;filter:grayscale(1)}
+  .promo .acc{display:flex;gap:6px;padding:8px}
+  .promo .acc button{flex:1;padding:8px 0;font-size:12px;border-radius:9px}
+  .seg{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .seg button{flex:1;border:0;border-radius:0;padding:11px 4px;font-size:13px;background:#000;color:var(--muted)}
+  .seg button.sel{background:var(--gold);color:#111}
+  .esquinas{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:240px;margin:0 auto;aspect-ratio:16/9;border:1px solid var(--line);border-radius:12px;padding:8px;background:#000}
+  .esquinas button{padding:0;border-radius:8px;font-size:11px;color:var(--muted)}
+  .esquinas button.sel{background:var(--gold);color:#111;border-color:var(--gold)}
+  .logo-vista{display:flex;justify-content:center;margin:6px 0 4px}
+  .logo-vista img{max-width:120px;max-height:90px;object-fit:contain}
+
+  .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 86px);translate:-50% 0;background:#1a1a1e;border:1px solid var(--line);
+    padding:11px 16px;border-radius:12px;font-size:14px;opacity:0;transition:opacity .25s;z-index:30;pointer-events:none;max-width:90vw;text-align:center}
+  .toast.ver{opacity:1}
+  .toast.err{border-color:var(--mal);color:#ffd2cb}
+  .vacio{color:var(--muted-2);font-size:13px;text-align:center;padding:14px}
+  details summary{cursor:pointer;color:var(--gold);font-size:14px;font-weight:600;padding:4px 2px;list-style:none}
+  details summary::-webkit-details-marker{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <img src="../icon-192.png" alt="" />
+    <div>
+      <div class="t">Ambientación</div>
+      <div class="s"><span class="punto" id="punto"></span><span id="conexion">Buscando la pantalla…</span></div>
+    </div>
+  </header>
+
+  <!-- Siempre visible: lo que suena y los botones -->
+  <div class="panel" style="margin-top:16px">
+    <div class="ahora">
+      <img id="miniatura" alt="" />
+      <div style="min-width:0">
+        <div class="tit" id="ahoraTitulo">—</div>
+        <span class="tag" id="ahoraTag" style="display:none">Pedida</span>
+      </div>
+    </div>
+    <div class="mandos">
+      <button onclick="orden('anterior')" aria-label="Anterior"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM9.5 12 18 18V6z"/></svg></button>
+      <button class="oro" id="btnPausa" onclick="pausa()" aria-label="Pausa"><svg id="icoPausa" viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg></button>
+      <button onclick="orden('siguiente')" aria-label="Siguiente"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
+    </div>
+    <div class="vol">
+      <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3z"/></svg>
+      <input type="range" id="volumen" min="0" max="100" step="5" />
+      <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>
+    </div>
+    <div class="muted" style="margin-top:8px;font-size:12px">El volumen de las bocinas se sigue moviendo en la consola. Este es solo el de YouTube.</div>
+  </div>
+
+  <!-- ===================== MÚSICA ===================== -->
+  <section class="vista activa" id="v-musica">
+    <h2>Pedir una canción</h2>
+    <div class="panel">
+      <div class="muted">En YouTube toca <b>Compartir → Copiar enlace</b> y pégalo aquí.</div>
+      <div class="fila" style="margin-top:10px">
+        <input type="url" id="linkPedida" placeholder="https://youtu.be/…" inputmode="url" autocomplete="off" />
+        <button class="chico" style="flex:0 0 auto" onclick="pegar('linkPedida')">Pegar</button>
+      </div>
+      <div class="fila" style="margin-top:10px">
+        <button onclick="pedir(false)">Después de esta</button>
+        <button class="lleno" onclick="pedir(true)">Va ahora</button>
+      </div>
+      <div class="muted" style="margin-top:8px;font-size:12px">"Va ahora" corta la actual con un fundido. "Después de esta" espera a que termine. Al acabar la pedida, regresa sola a la lista.</div>
+      <div id="cola"></div>
+    </div>
+
+    <h2>Lista que suena</h2>
+    <div class="panel">
+      <div class="switch">
+        <div><div style="font-weight:600">Cambiar sola por horario</div>
+          <div class="muted" style="font-size:12px">Desayuno hasta la 1 PM, comida hasta las 7 PM, cena después</div></div>
+        <input type="checkbox" id="autoHorario" />
+      </div>
+      <div id="listas"></div>
+      <details style="margin-top:14px">
+        <summary>+ Agregar lista de YouTube</summary>
+        <div class="muted" style="margin-top:8px">En YouTube abre la lista, toca <b>Compartir → Copiar enlace</b> y pégalo aquí.</div>
+        <label class="campo"><span>Nombre</span><input type="text" id="listaNombre" placeholder="Ej. Cena lounge" /></label>
+        <label class="campo"><span>Link de la lista</span>
+          <div class="fila"><input type="url" id="listaLink" placeholder="https://youtube.com/playlist?list=…" inputmode="url" />
+          <button class="chico" style="flex:0 0 auto" onclick="pegar('listaLink')">Pegar</button></div></label>
+        <label class="campo"><span>Horario (para el cambio automático)</span>
+          <select id="listaFranja"><option value="">Ninguno</option><option value="desayuno">Desayuno</option><option value="comida">Comida</option><option value="cena">Cena</option></select></label>
+        <div class="switch" style="margin-top:10px"><span>Revolver canciones</span><input type="checkbox" id="listaAleatorio" checked /></div>
+        <button class="oro" style="width:100%;margin-top:12px" onclick="agregarLista()">Guardar lista</button>
+      </details>
+    </div>
+  </section>
+
+  <!-- ===================== PROMOS ===================== -->
+  <section class="vista" id="v-promos">
+    <h2>Promociones en pantalla</h2>
+    <div class="panel">
+      <div class="switch"><div style="font-weight:600">Mostrar promos</div><input type="checkbox" id="promoVisible" /></div>
+      <button class="oro" style="width:100%;margin-top:10px" onclick="$('subirPromo').click()">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
+        Subir imágenes
+      </button>
+      <input type="file" id="subirPromo" accept="image/*" multiple hidden />
+      <div class="muted" style="margin-top:8px;font-size:12px">Sirven las mismas imágenes de redes sociales. Toca "Ya" para que salga en este momento.</div>
+      <div class="rejilla" id="promos"></div>
+    </div>
+
+    <h2>Cómo salen</h2>
+    <div class="panel">
+      <label class="campo" style="margin-top:0"><span>Salen cada <b id="cadaTxt"></b> minutos</span>
+        <input type="range" id="promoCada" min="1" max="20" step="1" /></label>
+      <label class="campo"><span>Duran <b id="duraTxt"></b> segundos</span>
+        <input type="range" id="promoDura" min="5" max="60" step="5" /></label>
+      <label class="campo"><span>Tamaño</span>
+        <div class="seg" id="promoTamano">
+          <button data-v="chico">Chica</button><button data-v="mediano">Mediana</button><button data-v="grande">Grande</button><button data-v="completa">Completa</button>
+        </div></label>
+      <label class="campo"><span>Esquina</span>
+        <div class="esquinas" id="promoPos">
+          <button data-v="arriba-izq">↖</button><button data-v="arriba-der">↗</button>
+          <button data-v="abajo-izq">↙</button><button data-v="abajo-der">↘</button>
+        </div></label>
+      <button style="width:100%;margin-top:14px" onclick="orden('promo_quitar')">Quitar la promo que está saliendo</button>
+    </div>
+  </section>
+
+  <!-- ===================== LOGO ===================== -->
+  <section class="vista" id="v-logo">
+    <h2>Logo encima del video</h2>
+    <div class="panel">
+      <div class="switch"><div style="font-weight:600">Mostrar logo</div><input type="checkbox" id="logoVisible" /></div>
+      <div class="logo-vista"><img id="logoVista" alt="" /></div>
+      <label class="campo"><span>Esquina</span>
+        <div class="esquinas" id="logoPos">
+          <button data-v="arriba-izq">↖</button><button data-v="arriba-der">↗</button>
+          <button data-v="abajo-izq">↙</button><button data-v="abajo-der">↘</button>
+        </div></label>
+      <label class="campo"><span>Tamaño</span><input type="range" id="logoTam" min="5" max="30" step="1" /></label>
+      <label class="campo"><span>Transparencia</span><input type="range" id="logoOpa" min="20" max="100" step="5" /></label>
+      <div class="fila" style="margin-top:14px">
+        <button onclick="$('subirLogo').click()">Cambiar imagen</button>
+        <button onclick="guardar({logo_url:null})">Logo original</button>
+      </div>
+      <input type="file" id="subirLogo" accept="image/*" hidden />
+      <div class="muted" style="margin-top:8px;font-size:12px">Un PNG con fondo transparente se ve mejor.</div>
+    </div>
+
+    <h2>Pantalla</h2>
+    <div class="panel">
+      <div class="muted">Si la pantalla se queda trabada, esto la vuelve a cargar. Después alguien tiene que tocar "empezar" en la compu.</div>
+      <button style="width:100%;margin-top:10px" onclick="if(confirm('¿Recargar la pantalla?')) orden('recargar')">Recargar pantalla</button>
+    </div>
+  </section>
+</div>
+
+<nav class="tabs">
+  <button class="activa" data-v="musica"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>Música</button>
+  <button data-v="promos"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>Promos</button>
+  <button data-v="logo"><svg viewBox="0 0 24 24"><path d="M12 2 15 8.5 22 9.3l-5 4.8 1.2 7L12 17.8 5.8 21l1.2-7-5-4.8 7-.8z"/></svg>Logo</button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = "https://nkpzjnfazuqlbvctyqzg.supabase.co";
+const SUPABASE_KEY = "sb_publishable_GSAiqzwne2iMe1niBbSMkQ_6XUCGzjB";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const LOGO_DEFECTO = "https://lospares.com/img/logo-monograma.png";
+const BUCKET = "ambientacion";
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let estado = {}, listas = [], promos = [], pedidas = [];
+let pausado = false;
+
+function toast(msg, err=false){ const t=$("toast"); t.textContent=msg; t.className="toast ver"+(err?" err":""); clearTimeout(toast._t); toast._t=setTimeout(()=>t.className="toast",2600); }
+function fallo(e){ console.error(e); toast("No se pudo guardar. Revisa el internet.", true); }
+
+// ---------- Pestañas ----------
+document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav.tabs button").forEach(x => x.classList.toggle("activa", x === b));
+  document.querySelectorAll(".vista").forEach(v => v.classList.toggle("activa", v.id === "v-" + b.dataset.v));
+  scrollTo({ top: 0 });
+});
+
+// ---------- Utilidades YouTube ----------
+function idDeVideo(txt){
+  txt = String(txt || "").trim();
+  const m = txt.match(/(?:youtu\.be\/|v=|\/shorts\/|\/embed\/|\/live\/)([A-Za-z0-9_-]{11})/);
+  if (m) return m[1];
+  return /^[A-Za-z0-9_-]{11}$/.test(txt) ? txt : null;
+}
+function idDeLista(txt){
+  const m = String(txt || "").match(/[?&]list=([A-Za-z0-9_-]+)/);
+  if (m) return m[1];
+  txt = String(txt || "").trim();
+  return /^(PL|OL|RD|UU|FL|LL)[A-Za-z0-9_-]{8,}$/.test(txt) ? txt : null;
+}
+async function tituloDe(videoId){
+  try {
+    const r = await fetch("https://noembed.com/embed?url=" + encodeURIComponent("https://www.youtube.com/watch?v=" + videoId));
+    const j = await r.json();
+    return j.title || null;
+  } catch(e){ return null; }
+}
+async function pegar(id){
+  try { $(id).value = await navigator.clipboard.readText(); }
+  catch(e){ $(id).focus(); toast("Mantén presionado el cuadro y elige Pegar"); }
+}
+
+// ---------- Órdenes y guardado ----------
+async function orden(accion, dato){
+  const { error } = await sb.from("amb_comando").insert({ accion, dato: dato || null });
+  if (error) return fallo(error);
+  const textos = { siguiente:"Siguiente canción", anterior:"Canción anterior", promo_quitar:"Promo quitada", recargar:"Recargando la pantalla" };
+  if (textos[accion]) toast(textos[accion]);
+}
+async function guardar(cambios){
+  Object.assign(estado, cambios);
+  pintarEstado();
+  const { error } = await sb.from("amb_estado").update({ ...cambios, actualizado: new Date().toISOString() }).eq("id", 1);
+  if (error) fallo(error);
+}
+function pausa(){
+  pausado = !pausado;
+  orden(pausado ? "pausa" : "play");
+  $("icoPausa").innerHTML = pausado ? '<path d="M7 5v14l11-7z"/>' : '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>';
+}
+
+// ---------- Pedidas ----------
+async function pedir(ya){
+  const vid = idDeVideo($("linkPedida").value);
+  if (!vid) return toast("Ese link no parece de un video de YouTube", true);
+  const titulo = await tituloDe(vid);
+  const { data, error } = await sb.from("amb_pedida").insert({ video_id: vid, titulo }).select().single();
+  if (error) return fallo(error);
+  if (ya) await orden("pedida_ya", { id: data.id });
+  $("linkPedida").value = "";
+  toast(ya ? "Va ahora" : "Queda después de esta");
+  cargarPedidas();
+}
+async function quitarPedida(id){
+  await sb.from("amb_pedida").update({ estado: "quitada" }).eq("id", id);
+  cargarPedidas();
+}
+async function cargarPedidas(){
+  const { data } = await sb.from("amb_pedida").select("*").eq("estado", "espera").order("id");
+  pedidas = data || [];
+  $("cola").innerHTML = pedidas.length ? '<h2 style="margin:18px 2px 4px">En espera</h2>' + pedidas.map((p, i) => `
+    <div class="item"><div class="cuerpo"><div class="nom">${i+1}. ${esc(p.titulo || "Video " + p.video_id)}</div></div>
+    <button class="chico" onclick="orden('pedida_ya',{id:${p.id}})">Ya</button>
+    <button class="chico peligro" onclick="quitarPedida(${p.id})">Quitar</button></div>`).join("") : "";
+}
+
+// ---------- Listas ----------
+async function cargarListas(){
+  const { data } = await sb.from("amb_lista").select("*").order("orden").order("creado");
+  listas = data || [];
+  pintarListas();
+}
+function pintarListas(){
+  const nombresFranja = { desayuno:"Desayuno", comida:"Comida", cena:"Cena" };
+  $("listas").innerHTML = listas.length ? listas.map(l => `
+    <div class="item ${l.id === estado.lista_id && !estado.auto_horario ? "actual" : ""}">
+      <div class="cuerpo"><div class="nom">${esc(l.nombre)}</div>
+        <div class="sub">${l.franja ? nombresFranja[l.franja] + " · " : ""}${l.aleatorio ? "Revuelta" : "En orden"}</div></div>
+      <button class="chico oro" onclick="ponerLista('${l.id}')">Poner</button>
+      <button class="chico peligro" onclick="borrarLista('${l.id}')" aria-label="Borrar">✕</button>
+    </div>`).join("") : '<div class="vacio">Todavía no hay listas. Agrega la primera aquí abajo.</div>';
+}
+async function ponerLista(id){
+  await guardar({ lista_id: id, auto_horario: false });
+  await orden("lista", { id });
+  toast("Cambiando de lista");
+  pintarListas();
+}
+async function agregarLista(){
+  const nombre = $("listaNombre").value.trim();
+  const lista = idDeLista($("listaLink").value);
+  if (!nombre) return toast("Ponle un nombre a la lista", true);
+  if (!lista) return toast("Ese link no es de una lista de YouTube (debe traer list=)", true);
+  const { data, error } = await sb.from("amb_lista").insert({
+    nombre, youtube_lista: lista, franja: $("listaFranja").value || null,
+    aleatorio: $("listaAleatorio").checked, orden: listas.length
+  }).select().single();
+  if (error) return fallo(error);
+  $("listaNombre").value = ""; $("listaLink").value = ""; $("listaFranja").value = "";
+  document.querySelector("details").open = false;
+  if (!estado.lista_id) await guardar({ lista_id: data.id });
+  toast("Lista guardada");
+  cargarListas();
+}
+async function borrarLista(id){
+  const l = listas.find(x => x.id === id);
+  if (!confirm(`¿Borrar la lista "${l ? l.nombre : ""}"? En YouTube no se borra nada.`)) return;
+  await sb.from("amb_lista").delete().eq("id", id);
+  if (estado.lista_id === id) await guardar({ lista_id: null });
+  cargarListas();
+}
+$("autoHorario").onchange = e => {
+  guardar({ auto_horario: e.target.checked });
+  toast(e.target.checked ? "Cambiará sola al terminar la canción" : "Se queda la lista elegida");
+  pintarListas();
+};
+
+// ---------- Imágenes ----------
+async function achicar(file, max, tipo){
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return file;
+  const img = await createImageBitmap(file);
+  const k = Math.min(1, max / Math.max(img.width, img.height));
+  if (k === 1 && file.size < 1.5e6) return file;
+  const c = document.createElement("canvas");
+  c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  return await new Promise(r => c.toBlob(r, tipo, .88));
+}
+async function subir(file, carpeta){
+  const ext = file.type === "image/png" ? "png" : (file.type === "image/webp" ? "webp" : "jpg");
+  const ruta = `${carpeta}/${Date.now()}-${Math.random().toString(36).slice(2,7)}.${ext}`;
+  const { error } = await sb.storage.from(BUCKET).upload(ruta, file, { contentType: file.type || "image/jpeg", upsert: false });
+  if (error) throw error;
+  return sb.storage.from(BUCKET).getPublicUrl(ruta).data.publicUrl;
+}
+$("subirPromo").onchange = async e => {
+  const files = [...e.target.files]; e.target.value = "";
+  if (!files.length) return;
+  toast(`Subiendo ${files.length} imagen${files.length > 1 ? "es" : ""}…`);
+  try {
+    for (const f of files){
+      const chico = await achicar(f, 1600, f.type === "image/png" ? "image/png" : "image/jpeg");
+      const url = await subir(chico, "promos");
+      const { error } = await sb.from("amb_promo").insert({ imagen_url: url, titulo: f.name, orden: promos.length });
+      if (error) throw error;
+    }
+    toast("Listo, ya están en la rotación");
+  } catch(err){ fallo(err); }
+  cargarPromos();
+};
+$("subirLogo").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  toast("Subiendo logo…");
+  try { const url = await subir(await achicar(f, 1200, "image/png"), "logo"); await guardar({ logo_url: url }); toast("Logo cambiado"); }
+  catch(err){ fallo(err); }
+};
+
+// ---------- Promos ----------
+async function cargarPromos(){
+  const { data } = await sb.from("amb_promo").select("*").order("orden").order("creado");
+  promos = data || [];
+  $("promos").innerHTML = promos.length ? promos.map(p => `
+    <div class="promo ${p.activa ? "" : "apagada"}">
+      <img src="${esc(p.imagen_url)}" alt="" loading="lazy" />
+      <div class="acc">
+        <button onclick="orden('promo_ahora',{id:'${p.id}'});toast('Saliendo en pantalla')" ${p.activa ? "" : "disabled"}>Ya</button>
+        <button onclick="activarPromo('${p.id}', ${!p.activa})">${p.activa ? "Pausar" : "Activar"}</button>
+        <button class="peligro" onclick="borrarPromo('${p.id}')" aria-label="Borrar">✕</button>
+      </div>
+    </div>`).join("") : '<div class="vacio" style="grid-column:1/-1">Sube tus imágenes de promociones, cortes o el QR del menú.</div>';
+}
+async function activarPromo(id, activa){
+  const { error } = await sb.from("amb_promo").update({ activa }).eq("id", id);
+  if (error) return fallo(error);
+  cargarPromos();
+}
+async function borrarPromo(id){
+  if (!confirm("¿Borrar esta promo?")) return;
+  const p = promos.find(x => x.id === id);
+  await sb.from("amb_promo").delete().eq("id", id);
+  const m = p && p.imagen_url.split(`/${BUCKET}/`)[1];
+  if (m) sb.storage.from(BUCKET).remove([decodeURIComponent(m)]);
+  cargarPromos();
+}
+
+// ---------- Controles de estado ----------
+function seg(id, campo){
+  $(id).querySelectorAll("button").forEach(b => b.onclick = () => guardar({ [campo]: b.dataset.v }));
+}
+seg("promoTamano", "promo_tamano");
+seg("promoPos", "promo_posicion");
+seg("logoPos", "logo_posicion");
+$("promoVisible").onchange = e => guardar({ promo_visible: e.target.checked });
+$("logoVisible").onchange = e => guardar({ logo_visible: e.target.checked });
+function deslizador(id, campo, txt){
+  const el = $(id);
+  el.oninput = () => { if (txt) $(txt).textContent = el.value; };
+  el.onchange = () => guardar({ [campo]: Number(el.value) });
+}
+deslizador("promoCada", "promo_cada_min", "cadaTxt");
+deslizador("promoDura", "promo_dura_seg", "duraTxt");
+deslizador("logoTam", "logo_tamano");
+deslizador("logoOpa", "logo_opacidad");
+$("volumen").onchange = e => { estado.volumen = Number(e.target.value); orden("volumen", { v: estado.volumen }); guardar({ volumen: estado.volumen }); };
+
+function pintarEstado(){
+  const e = estado;
+  $("autoHorario").checked = !!e.auto_horario;
+  $("promoVisible").checked = e.promo_visible !== false;
+  $("logoVisible").checked = e.logo_visible !== false;
+  $("promoCada").value = e.promo_cada_min ?? 4; $("cadaTxt").textContent = e.promo_cada_min ?? 4;
+  $("promoDura").value = e.promo_dura_seg ?? 15; $("duraTxt").textContent = e.promo_dura_seg ?? 15;
+  $("logoTam").value = e.logo_tamano ?? 12;
+  $("logoOpa").value = e.logo_opacidad ?? 85;
+  if (document.activeElement !== $("volumen")) $("volumen").value = e.volumen ?? 80;
+  const marcar = (id, v) => $(id).querySelectorAll("button").forEach(b => b.classList.toggle("sel", b.dataset.v === v));
+  marcar("promoTamano", e.promo_tamano || "mediano");
+  marcar("promoPos", e.promo_posicion || "abajo-der");
+  marcar("logoPos", e.logo_posicion || "arriba-der");
+  const lv = $("logoVista"); const url = e.logo_url || LOGO_DEFECTO;
+  if (lv.dataset.url !== url){ lv.dataset.url = url; lv.onerror = () => { lv.src = "../icon-512.png"; }; lv.src = url; }
+  $("ahoraTitulo").textContent = e.ahora_titulo || "—";
+  $("ahoraTag").style.display = e.ahora_es_pedida ? "" : "none";
+  const mini = $("miniatura");
+  mini.style.visibility = e.ahora_video_id ? "visible" : "hidden";
+  mini.onerror = () => { mini.style.visibility = "hidden"; };
+  if (e.ahora_video_id) mini.src = `https://i.ytimg.com/vi/${e.ahora_video_id}/mqdefault.jpg`;
+  pintarConexion();
+}
+function pintarConexion(){
+  const vivo = estado.pantalla_latido && (Date.now() - new Date(estado.pantalla_latido).getTime() < 90 * 1000);
+  $("punto").classList.toggle("on", !!vivo);
+  $("conexion").textContent = vivo ? "Pantalla conectada" : "La pantalla no está abierta";
+}
+
+async function cargarEstado(){
+  const { data } = await sb.from("amb_estado").select("*").eq("id", 1).single();
+  if (data){ estado = data; pintarEstado(); pintarListas(); }
+}
+
+// ---------- Tiempo real ----------
+sb.channel("control")
+  .on("postgres_changes", { event: "UPDATE", schema: "public", table: "amb_estado" }, ({ new: n }) => { estado = n; pintarEstado(); pintarListas(); })
+  .on("postgres_changes", { event: "*", schema: "public", table: "amb_pedida" }, cargarPedidas)
+  .subscribe();
+
+(async function(){
+  await cargarEstado();
+  await Promise.all([cargarListas(), cargarPromos(), cargarPedidas()]);
+  setInterval(cargarEstado, 10000);
+  setInterval(pintarConexion, 15000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible"){ cargarEstado(); cargarPedidas(); } });
+})();
+</script>
+</body>
+</html>

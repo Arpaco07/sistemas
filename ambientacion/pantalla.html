@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Los Pares · Pantalla</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+  :root{ --gold:#c2a35c; --ink:#f5f2ea; --muted:#9a978f; }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  body.corriendo{cursor:none}
+
+  #escena{position:fixed;inset:0;background:#000}
+  #yt, #yt iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  #video{position:absolute;inset:0;transition:opacity 1.2s ease}
+  #video.apagado{opacity:0}
+  /* Tapa encima del video: evita que salgan los controles y títulos de YouTube al mover el mouse */
+  #tapa{position:absolute;inset:0;z-index:5}
+
+  /* Logo */
+  #logo{position:absolute;z-index:10;transition:opacity .8s ease, width .4s ease;pointer-events:none;
+    filter:drop-shadow(0 4px 18px rgba(0,0,0,.55))}
+  #logo.oculto{opacity:0 !important}
+
+  /* Promo */
+  #promo{position:absolute;z-index:11;pointer-events:none;opacity:0;transform:scale(.96);
+    transition:opacity .9s ease, transform .9s ease;border-radius:1.2vw;overflow:hidden;
+    box-shadow:0 1.5vw 4vw rgba(0,0,0,.6), 0 0 0 .15vw rgba(194,163,92,.6);background:#000}
+  #promo.ver{opacity:1;transform:scale(1)}
+  #promo img{display:block;width:100%;height:auto}
+  #promo.completa{inset:0;border-radius:0;box-shadow:none;display:flex;align-items:center;justify-content:center}
+  #promo.completa img{width:auto;height:100%;max-width:100%;object-fit:contain}
+  #promo .fondo{display:none}
+  #promo.completa .fondo{display:block;position:absolute;inset:-40px;background-size:cover;background-position:center;
+    filter:blur(40px) brightness(.45)}
+  #promo.completa img{position:relative}
+
+  .pos-arriba-izq{top:3vh;left:2.2vw}
+  .pos-arriba-der{top:3vh;right:2.2vw}
+  .pos-abajo-izq{bottom:4vh;left:2.2vw}
+  .pos-abajo-der{bottom:4vh;right:2.2vw}
+  .pos-centro{top:50%;left:50%;translate:-50% -50%}
+
+  /* Pantalla de inicio */
+  #inicio{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2.2vh;background:radial-gradient(120% 80% at 50% -10%,#17171a 0%,#0a0a0b 42%,#000 100%);cursor:pointer;text-align:center;padding:24px}
+  #inicio img{width:min(22vw,220px);border-radius:24px}
+  #inicio h1{font-family:Georgia,serif;letter-spacing:.28em;text-transform:uppercase;font-weight:400;font-size:clamp(18px,2.4vw,34px);margin:0}
+  #inicio .btn{margin-top:2vh;border:1px solid var(--gold);box-shadow:0 0 0 6px rgba(194,163,92,.14);border-radius:18px;
+    padding:18px 34px;font-size:clamp(16px,1.6vw,24px);font-weight:600}
+  #inicio p{color:var(--muted);margin:0;font-size:clamp(13px,1.1vw,17px);max-width:640px;line-height:1.5}
+
+  /* Mensaje cuando no hay lista */
+  #aviso{position:absolute;inset:0;z-index:4;display:none;align-items:center;justify-content:center;flex-direction:column;gap:2vh;
+    text-align:center;color:var(--muted);font-size:clamp(16px,1.6vw,26px);padding:5vw}
+  #aviso b{color:var(--gold)}
+
+  /* Avisos chicos (solo se ven unos segundos) */
+  #nota{position:fixed;left:50%;bottom:3vh;translate:-50% 0;z-index:60;background:rgba(0,0,0,.75);border:1px solid #333;
+    color:var(--ink);padding:10px 18px;border-radius:12px;font-size:15px;opacity:0;transition:opacity .4s;pointer-events:none}
+  #nota.ver{opacity:1}
+</style>
+</head>
+<body>
+<div id="escena">
+  <div id="video"><div id="yt"></div></div>
+  <div id="tapa"></div>
+  <div id="aviso">
+    <div>Todavía no hay una lista de YouTube.</div>
+    <div>Desde el celular abre <b>sistemas.lospares.com/ambientacion</b> y agrega una en la pestaña <b>Música</b>.</div>
+  </div>
+  <img id="logo" alt="" />
+  <div id="promo"><div class="fondo"></div><img alt="" /></div>
+</div>
+
+<div id="inicio">
+  <img src="../icon-512.png" alt="Los Pares" />
+  <h1>Los Pares · Ambientación</h1>
+  <div class="btn">Toca aquí para empezar</div>
+  <p>Al tocar, la página se pone en pantalla completa y empieza la música.
+     Todo lo demás se controla desde el celular.</p>
+</div>
+<div id="nota"></div>
+
+<script>
+// ==========================================================
+//  CONFIG — mismo proyecto Supabase que los demás sistemas
+// ==========================================================
+const SUPABASE_URL = "https://nkpzjnfazuqlbvctyqzg.supabase.co";
+const SUPABASE_KEY = "sb_publishable_GSAiqzwne2iMe1niBbSMkQ_6XUCGzjB";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const LOGO_DEFECTO = "https://lospares.com/img/logo-monograma.png";
+const LOGO_RESPALDO = "../icon-512.png";
+const FUNDIDO_MS = 2500;          // fundido al cambiar de canción
+const ANTES_DE_TERMINAR = 3;      // segundos antes del final para meter la pedida
+
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+let estado = {};          // fila de amb_estado
+let listas = [];          // amb_lista
+let promos = [];          // amb_promo activas
+let player = null;
+let listo = false;        // reproductor de YouTube cargado
+let empezado = false;     // ya tocaron "empezar"
+let modo = "lista";       // 'lista' o 'pedida'
+let listaActual = null;   // fila de amb_lista que suena
+let indiceGuardado = 0;   // dónde íbamos en la lista antes de una pedida
+let pedidaActual = null;  // fila de amb_pedida que suena
+let cambiando = false;    // hay un fundido en curso
+let listaPendiente = null;// cambio de lista por horario: se hace al terminar la canción
+let erroresSeguidos = 0;
+let ultimoReporte = "";
+let barajarAlCargar = false;
+
+function nota(t){ const n=$("nota"); n.textContent=t; n.classList.add("ver"); clearTimeout(nota._t); nota._t=setTimeout(()=>n.classList.remove("ver"),3500); }
+
+// ==========================================================
+//  Datos
+// ==========================================================
+async function cargarTodo(){
+  const [e, l, p] = await Promise.all([
+    sb.from("amb_estado").select("*").eq("id",1).single(),
+    sb.from("amb_lista").select("*").order("orden").order("creado"),
+    sb.from("amb_promo").select("*").eq("activa",true).order("orden").order("creado"),
+  ]);
+  if (e.data) estado = e.data;
+  if (l.data) listas = l.data;
+  if (p.data) promos = p.data;
+  pintarLogo();
+}
+
+function listaPorId(id){ return listas.find(x => x.id === id) || null; }
+function franjaAhora(){
+  const h = new Date().getHours();
+  if (h < 13) return "desayuno";
+  if (h < 19) return "comida";
+  return "cena";
+}
+function listaQueToca(){
+  if (estado.auto_horario){
+    const f = franjaAhora();
+    const porHorario = listas.find(x => x.franja === f);
+    if (porHorario) return porHorario;
+  }
+  return listaPorId(estado.lista_id) || listas[0] || null;
+}
+
+async function reportarAhora(){
+  if (!player || !player.getVideoData) return;
+  const d = player.getVideoData() || {};
+  const firma = (d.video_id||"") + "|" + (d.title||"") + "|" + modo;
+  if (!d.video_id || firma === ultimoReporte) return;
+  ultimoReporte = firma;
+  await sb.from("amb_estado").update({
+    ahora_titulo: d.title || null, ahora_video_id: d.video_id,
+    ahora_es_pedida: modo === "pedida", pantalla_latido: new Date().toISOString()
+  }).eq("id",1);
+  if (modo === "pedida" && pedidaActual && !pedidaActual.titulo && d.title){
+    pedidaActual.titulo = d.title;
+    await sb.from("amb_pedida").update({ titulo: d.title }).eq("id", pedidaActual.id);
+  }
+}
+async function latido(){
+  await sb.from("amb_estado").update({ pantalla_latido: new Date().toISOString() }).eq("id",1);
+}
+
+// ==========================================================
+//  Logo
+// ==========================================================
+function pintarLogo(){
+  const img = $("logo");
+  const url = estado.logo_url || LOGO_DEFECTO;
+  if (img.dataset.url !== url){
+    img.dataset.url = url;
+    img.onerror = () => { if (img.src.indexOf("icon-512") < 0) img.src = LOGO_RESPALDO; };
+    img.src = url;
+  }
+  img.className = "pos-" + (estado.logo_posicion || "arriba-der");
+  img.style.width = (estado.logo_tamano || 12) + "vw";
+  img.style.opacity = (estado.logo_opacidad ?? 85) / 100;
+  if (estado.logo_visible === false) img.classList.add("oculto");
+  // Si el logo y la promo quedan en la misma esquina, la promo se va a la esquina de abajo contraria
+}
+
+// ==========================================================
+//  Promos
+// ==========================================================
+let promoIdx = 0, promoTimer = null, promoMostrando = false, promoOcultar = null;
+const TAMANOS = { chico: 22, mediano: 32, grande: 45 };
+
+function posPromo(){
+  let pos = estado.promo_posicion || "abajo-der";
+  if (pos === (estado.logo_posicion || "arriba-der") && estado.logo_visible !== false){
+    pos = pos.startsWith("arriba") ? pos.replace("arriba","abajo") : pos.replace("abajo","arriba");
+  }
+  return pos;
+}
+
+async function mostrarPromo(promo){
+  if (!promo) return;
+  const caja = $("promo"), img = caja.querySelector("img");
+  await new Promise(res => { img.onload = res; img.onerror = res; img.src = promo.imagen_url; });
+  const tam = estado.promo_tamano || "mediano";
+  caja.className = "";
+  caja.style.width = "";
+  if (tam === "completa"){
+    caja.classList.add("completa");
+    caja.querySelector(".fondo").style.backgroundImage = `url("${promo.imagen_url}")`;
+  } else {
+    caja.classList.add("pos-" + posPromo());
+    caja.style.width = (TAMANOS[tam] || 32) + "vw";
+    caja.style.maxHeight = "70vh";
+    // Imágenes verticales: limitar por alto
+    if (img.naturalHeight > img.naturalWidth * 1.05){
+      caja.style.width = Math.min(TAMANOS[tam] || 32, 70 * (img.naturalWidth/img.naturalHeight) * (innerHeight/innerWidth)) + "vw";
+    }
+  }
+  promoMostrando = true;
+  requestAnimationFrame(() => caja.classList.add("ver"));
+  clearTimeout(promoOcultar);
+  promoOcultar = setTimeout(ocultarPromo, (estado.promo_dura_seg || 15) * 1000);
+}
+function ocultarPromo(){
+  $("promo").classList.remove("ver");
+  promoMostrando = false;
+}
+function siguientePromo(){
+  if (estado.promo_visible === false || !promos.length || promoMostrando) return;
+  promoIdx = promoIdx % promos.length;
+  mostrarPromo(promos[promoIdx]);
+  promoIdx++;
+}
+function programarPromos(){
+  clearInterval(promoTimer);
+  const cada = Math.max(1, estado.promo_cada_min || 4) * 60 * 1000;
+  promoTimer = setInterval(siguientePromo, cada);
+}
+
+// ==========================================================
+//  YouTube
+// ==========================================================
+function onYouTubeIframeAPIReady(){
+  player = new YT.Player("yt", {
+    width: "100%", height: "100%",
+    playerVars: { autoplay: 1, controls: 0, rel: 0, iv_load_policy: 3, playsinline: 1,
+                  disablekb: 1, fs: 0, modestbranding: 1, origin: location.origin },
+    events: {
+      onReady: () => { listo = true; if (empezado) arrancar(); },
+      onStateChange: alCambiarEstado,
+      onError: alFallar
+    }
+  });
+}
+
+function alCambiarEstado(ev){
+  const s = ev.data;
+  if (s === YT.PlayerState.PLAYING){
+    erroresSeguidos = 0;
+    if (barajarAlCargar){
+      // Primera vez que carga la lista: barajar y saltar a una canción al azar
+      barajarAlCargar = false;
+      const pl = player.getPlaylist() || [];
+      if (pl.length > 1){
+        player.setShuffle(true);
+        player.playVideoAt(Math.floor(Math.random() * pl.length));
+        return;
+      }
+    }
+    if (!cambiando) subirVolumen();
+    setTimeout(reportarAhora, 600);
+  }
+  if (s === YT.PlayerState.ENDED){
+    if (modo === "pedida") terminarPedida();
+    else if (!cambiando){
+      // Fin de la lista: volver a empezarla
+      const pl = player.getPlaylist() || [];
+      if (pl.length && player.getPlaylistIndex() >= pl.length - 1) ponerLista(listaActual, 0);
+    }
+  }
+}
+
+async function alFallar(ev){
+  // 100/101/150: video borrado o que no se deja poner fuera de YouTube. Se salta solo.
+  erroresSeguidos++;
+  const espera = erroresSeguidos > 8 ? 15000 : 1200;
+  nota("Este video no se puede poner aquí, sigue el siguiente");
+  await sleep(espera);
+  if (modo === "pedida"){ terminarPedida(); return; }
+  player.nextVideo();
+}
+
+function volumenObjetivo(){ return Math.max(0, Math.min(100, estado.volumen ?? 80)); }
+function subirVolumen(){ try { player.unMute(); player.setVolume(volumenObjetivo()); } catch(e){} }
+
+async function fundirSalida(){
+  cambiando = true;
+  $("video").classList.add("apagado");
+  const inicio = player.getVolume ? player.getVolume() : volumenObjetivo();
+  const pasos = 20;
+  for (let i = 1; i <= pasos; i++){
+    try { player.setVolume(Math.round(inicio * (1 - i/pasos))); } catch(e){}
+    await sleep(FUNDIDO_MS / pasos);
+  }
+}
+async function fundirEntrada(){
+  // espera a que el video nuevo empiece y sube volumen poco a poco
+  for (let i = 0; i < 40; i++){
+    if (player.getPlayerState && player.getPlayerState() === YT.PlayerState.PLAYING) break;
+    await sleep(150);
+  }
+  $("video").classList.remove("apagado");
+  const fin = volumenObjetivo(), pasos = 16;
+  for (let i = 1; i <= pasos; i++){
+    try { player.setVolume(Math.round(fin * i/pasos)); } catch(e){}
+    await sleep(1500 / pasos);
+  }
+  cambiando = false;
+  reportarAhora();
+}
+
+function ponerLista(lista, indice){
+  listaActual = lista;
+  modo = "lista";
+  pedidaActual = null;
+  $("aviso").style.display = lista ? "none" : "flex";
+  if (!lista){ try{ player.stopVideo(); }catch(e){} return; }
+  const id = idDeLista(lista.youtube_lista);
+  barajarAlCargar = lista.aleatorio && indice == null;
+  player.loadPlaylist({ listType: "playlist", list: id, index: indice || 0 });
+  if (lista.aleatorio && indice != null) setTimeout(() => { try{ player.setShuffle(true); }catch(e){} }, 1500);
+}
+function idDeLista(txt){
+  const m = String(txt).match(/[?&]list=([A-Za-z0-9_-]+)/);
+  return m ? m[1] : String(txt).trim();
+}
+
+async function cambiarLista(lista){
+  if (!lista || (listaActual && lista.id === listaActual.id && modo === "lista")) return;
+  await fundirSalida();
+  ponerLista(lista, null);
+  fundirEntrada();
+}
+
+// ---- Pedidas ----
+async function siguientePedida(){
+  const { data } = await sb.from("amb_pedida").select("*").eq("estado","espera").order("id").limit(1);
+  return data && data[0] || null;
+}
+
+async function ponerPedida(p, conFundido){
+  if (conFundido) await fundirSalida();
+  if (modo === "lista"){
+    try { indiceGuardado = player.getPlaylistIndex(); } catch(e){ indiceGuardado = 0; }
+  }
+  modo = "pedida";
+  pedidaActual = p;
+  await sb.from("amb_pedida").update({ estado: "sonando" }).eq("id", p.id);
+  player.loadVideoById(p.video_id);
+  fundirEntrada();
+}
+
+async function terminarPedida(){
+  if (pedidaActual) await sb.from("amb_pedida").update({ estado: "hecha" }).eq("id", pedidaActual.id);
+  pedidaActual = null;
+  const otra = await siguientePedida();
+  if (otra){ ponerPedida(otra, false); return; }
+  // Regresa sola a la lista donde se quedó
+  const lista = listaPendiente || listaActual || listaQueToca();
+  const vuelveA = listaPendiente ? null : (indiceGuardado + 1);
+  listaPendiente = null;
+  $("video").classList.add("apagado");
+  cambiando = true;
+  ponerLista(lista, vuelveA);
+  fundirEntrada();
+}
+
+// Vigila el final de cada canción para meter la pedida o el cambio de horario a tiempo
+let vigilando = false;
+async function vigilar(){
+  if (vigilando || !empezado || !listo || cambiando || modo !== "lista") return;
+  vigilando = true;
+  try { await vigilarFin(); } finally { vigilando = false; }
+}
+async function vigilarFin(){
+  let dur = 0, t = 0;
+  try { dur = player.getDuration(); t = player.getCurrentTime(); } catch(e){ return; }
+  if (!dur || dur - t > ANTES_DE_TERMINAR) return;
+  const p = await siguientePedida();
+  if (p){ await ponerPedida(p, true); return; }
+  if (listaPendiente){ const l = listaPendiente; listaPendiente = null; await cambiarLista(l); }
+}
+
+function revisarHorario(){
+  if (!estado.auto_horario || !empezado) return;
+  const l = listaQueToca();
+  if (l && listaActual && l.id !== listaActual.id) listaPendiente = l;
+}
+
+// ==========================================================
+//  Órdenes del celular
+// ==========================================================
+let procesando = false;
+async function revisarComandos(){
+  if (procesando || !listo || !empezado) return;
+  procesando = true;
+  try {
+    const { data } = await sb.from("amb_comando").select("*").eq("hecho", false).order("id").limit(10);
+    for (const c of (data || [])){
+      await sb.from("amb_comando").update({ hecho: true }).eq("id", c.id);
+      const viejo = Date.now() - new Date(c.creado).getTime() > 3 * 60 * 1000;
+      if (!viejo) await ejecutar(c);
+    }
+  } finally { procesando = false; }
+}
+
+async function ejecutar(c){
+  const d = c.dato || {};
+  switch (c.accion){
+    case "siguiente":
+      if (modo === "pedida"){ await fundirSalida(); terminarPedida(); }
+      else {
+        const p = await siguientePedida();
+        if (p) { ponerPedida(p, true); break; }
+        await fundirSalida(); player.nextVideo(); fundirEntrada();
+      }
+      break;
+    case "anterior":
+      if (modo === "lista"){ await fundirSalida(); player.previousVideo(); fundirEntrada(); }
+      else player.seekTo(0, true);
+      break;
+    case "pausa": player.pauseVideo(); break;
+    case "play":  player.playVideo(); break;
+    case "volumen":
+      estado.volumen = d.v; if (!cambiando) player.setVolume(volumenObjetivo()); break;
+    case "pedida_ya": {
+      const { data } = await sb.from("amb_pedida").select("*").eq("id", d.id).single();
+      if (data && data.estado === "espera") ponerPedida(data, true);
+      break;
+    }
+    case "lista": {
+      await cargarTodo();
+      const l = listaPorId(d.id);
+      if (l){ listaPendiente = null; if (modo === "pedida") listaPendiente = l; else cambiarLista(l); }
+      break;
+    }
+    case "promo_ahora": {
+      await cargarTodo();
+      const p = promos.find(x => x.id === d.id) || promos[promoIdx % (promos.length||1)];
+      ocultarPromo(); await sleep(300); promoMostrando = false;
+      mostrarPromo(p);
+      break;
+    }
+    case "promo_quitar": clearTimeout(promoOcultar); ocultarPromo(); break;
+    case "recargar": location.reload(); break;
+  }
+}
+
+// ==========================================================
+//  Tiempo real (con respaldo por si se cae la conexión)
+// ==========================================================
+function escuchar(){
+  sb.channel("ambientacion")
+    .on("postgres_changes", { event: "*", schema: "public", table: "amb_estado" }, ({ new: n }) => {
+      const antes = estado; estado = n || estado;
+      pintarLogo();
+      if (antes.promo_cada_min !== estado.promo_cada_min) programarPromos();
+      if (estado.promo_visible === false) ocultarPromo();
+      if (antes.auto_horario !== estado.auto_horario) revisarHorario();
+    })
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "amb_comando" }, revisarComandos)
+    .on("postgres_changes", { event: "*", schema: "public", table: "amb_promo" }, async () => {
+      const { data } = await sb.from("amb_promo").select("*").eq("activa",true).order("orden").order("creado");
+      promos = data || [];
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "amb_lista" }, async () => {
+      const { data } = await sb.from("amb_lista").select("*").order("orden").order("creado");
+      listas = data || [];
+      if (!listaActual && listas.length && empezado) ponerLista(listaQueToca(), null);
+    })
+    .subscribe();
+}
+
+// ==========================================================
+//  Arranque
+// ==========================================================
+async function arrancar(){
+  if (!listo) return;
+  document.body.classList.add("corriendo");
+  ponerLista(listaQueToca(), null);
+  subirVolumen();
+  programarPromos();
+  // Las órdenes que se quedaron de antes no se ejecutan
+  await sb.from("amb_comando").update({ hecho: true }).eq("hecho", false)
+          .lt("creado", new Date(Date.now() - 3*60*1000).toISOString());
+}
+
+$("inicio").addEventListener("click", async () => {
+  $("inicio").style.display = "none";
+  try { await document.documentElement.requestFullscreen(); } catch(e){}
+  try { await navigator.wakeLock.request("screen"); } catch(e){}
+  empezado = true;
+  arrancar();
+});
+// Doble clic: entrar o salir de pantalla completa
+document.addEventListener("dblclick", () => {
+  if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(()=>{});
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") navigator.wakeLock?.request("screen").catch(()=>{});
+});
+
+(async function(){
+  await cargarTodo();
+  escuchar();
+  setInterval(vigilar, 700);
+  setInterval(revisarComandos, 4000);          // respaldo si el tiempo real se cae
+  setInterval(revisarHorario, 60 * 1000);
+  setInterval(reportarAhora, 5000);
+  setInterval(latido, 30 * 1000);
+  setInterval(async () => {                      // refresco completo cada 2 minutos
+    const antes = estado.promo_cada_min; await cargarTodo();
+    if (antes !== estado.promo_cada_min) programarPromos();
+  }, 120 * 1000);
+  const s = document.createElement("script");
+  s.src = "https://www.youtube.com/iframe_api";
+  document.head.appendChild(s);
+  // ?auto=1 en el link arranca sin tocar (sirve si Chrome se abre con permiso de autoplay)
+  if (new URLSearchParams(location.search).get("auto") === "1") setTimeout(() => $("inicio").click(), 1500);
+})();
+</script>
+</body>
+</html>
